@@ -106,10 +106,12 @@ board_ensure_item() {
     # Those must not be confused: reporting "could not add" for a version
     # difference would be a lie that hides a working board. Retry plainly and
     # let the exit code decide.
-    if gh project item-add "$BOARD_NUMBER" --owner "$BOARD_OWNER" --url "$url" >/dev/null 2>&1; then
+    local add_err
+    if add_err="$(gh project item-add "$BOARD_NUMBER" --owner "$BOARD_OWNER" --url "$url" 2>&1 >/dev/null)"; then
       added="{}"
     else
       warn "board: could not add issue #$issue to project #$BOARD_NUMBER"
+      [[ -n "$add_err" ]] && printf '  GitHub said: %s\n' "$add_err" >&2
       return 0
     fi
   fi
@@ -202,16 +204,30 @@ board_set_status() {
     return 0
   fi
 
-  if gh project item-edit \
+  local err
+  err="$(gh project item-edit \
       --id "$item_id" \
       --project-id "$project_id" \
       --field-id "$field_id" \
-      --single-select-option-id "$option_id" >/dev/null 2>&1; then
+      --single-select-option-id "$option_id" 2>&1 >/dev/null)" && {
     log "board: issue #$issue → $status"
     BOARD_LAST_MOVE_OK=true
+    return 0
+  }
+
+  # Print what GitHub actually said. This used to be `2>&1` into /dev/null with
+  # a guess bolted on -- "the token needs Projects: Read and write" -- which is
+  # the most common cause and not the only one, and there was no way to tell
+  # them apart from the log. A wrong guess in an error message sends people to
+  # audit the wrong thing, and they believe it because it looks specific.
+  caution "Board: failed to move issue #$issue to '$status'."
+  if [[ -n "$err" ]]; then
+    printf '  GitHub said: %s\n' "$err" >&2
   else
-    caution "Board: failed to move issue #$issue to '$status'. The token needs Projects: Read and write on '$BOARD_OWNER'."
+    printf '  GitHub said nothing. Usually a permission the token does not have.\n' >&2
   fi
+  printf '  Most likely: the fine-grained PAT needs Projects: Read and write on %s,\n' "$BOARD_OWNER" >&2
+  printf '  and an org owner must approve it after any permission change.\n' >&2
   return 0
 }
 

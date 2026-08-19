@@ -2,6 +2,13 @@
 
 ## 0.2.2 — 2026-08-19
 
+- Board failures now print what GitHub actually said. `item-edit` and `item-add`
+  sent stderr to /dev/null and a guess was printed in its place — "the token
+  needs Projects: Read and write" — which is the commonest cause and not the
+  only one. A specific-sounding wrong guess sends people to audit the wrong
+  thing, and there was no way to tell it apart from the right one, because the
+  evidence had been thrown away.
+
 - Fixed: `sync-board.sh` reported "moved 4 of 5" in a run where every write was
   refused. It counted attempts, because `board_set_status` always returns 0 by
   design — a broken board must not fail a run — so a caller had no way to tell a
