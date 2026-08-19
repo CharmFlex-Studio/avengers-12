@@ -227,6 +227,21 @@ jobs:
             --max-turns ${{ steps.cfg.outputs.triage_max_turns }}
             --allowedTools "Bash,Read,Grep,Glob,Edit,Write"
 
+      # Triage changes labels through a model, and a model is deliberately not
+      # allowed to drive the board. pick-next also relabels when it unblocks an
+      # answered issue. Neither moves a card, so the board drifted away from the
+      # labels every run. A human clicking a label in the GitHub UI drifts it
+      # too, and nothing here is triggered by that at all.
+      #
+      # This reconciles: it reads the labels as they now stand and moves any card
+      # that disagrees. Safe to run at any point, and safe to run twice.
+      - name: Reconcile board cards with labels
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+        run: avengers-12/lib/sync-board.sh
+
       - name: Save avengers-12/state/STATE.md
         if: always() && github.event_name == 'workflow_dispatch' && inputs.issue_number == ''
         env:

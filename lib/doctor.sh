@@ -236,6 +236,31 @@ else
 fi
 endgroup
 
+# --- 4g. no script sits in lib/ with nothing calling it ----------------------
+# sync-board.sh lived in one repository for days, correct and complete, wired to
+# nothing. It was written to fix a real gap -- triage changes labels through a
+# model, and a model is deliberately not allowed to move cards -- and then no
+# workflow step ever ran it. Dead code that LOOKS alive is worse than missing
+# code: you read the directory, see the file, and assume the job is done.
+group "Every script has a caller"
+ORPHANS=""
+for script in "$HERE"/*.sh "$HERE"/*.py; do
+  [[ -e "$script" ]] || continue
+  base="$(basename "$script")"
+  # common.sh and board.sh are sourced by name; the rest must be invoked.
+  hits="$(grep -rlF "$base" \
+            "$HERE" .github .claude "$AVENGERS_HOME/docs" "$AVENGERS_HOME/rules" 2>/dev/null \
+          | grep -vxF "$script" | head -n1)"
+  [[ -n "$hits" ]] || ORPHANS="${ORPHANS}${base}"$'"'"'\n'"'"'
+done
+if [[ -n "$ORPHANS" ]]; then
+  note_problem "nothing anywhere calls or mentions:"
+  printf '%s' "$ORPHANS" | sed 's/^/      /' >&2
+else
+  note_ok "every script in $(cfg paths.lib) is called from somewhere"
+fi
+endgroup
+
 # --- 5. every script the harness calls is present and parses -----------------
 group "Scripts"
 BAD=0

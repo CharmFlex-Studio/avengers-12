@@ -21,6 +21,17 @@ says so instead of failing silently.
   a job log and nothing else. A default GitHub Project has only Todo, In Progress
   and Done, so In Review and Blocked silently did nothing on a fresh board.
 
+- `lib/sync-board.sh`, run by the triage job — reconciles every card's lane with
+  the labels on its issue. Two things changed labels and moved no card: triage,
+  which works through a model and is deliberately not allowed to drive the board,
+  and a human clicking a label in the GitHub UI, which nothing here is triggered
+  by at all. It reads the labels as they stand and moves whatever disagrees, so
+  it is safe to run at any point and safe to run twice.
+- `doctor` now fails when a script in `lib/` has no caller anywhere. That is how
+  `sync-board.sh` sat complete and wired to nothing: dead code that looks alive
+  is worse than missing code, because you read the directory and assume the job
+  is done.
+
 Fixed:
 
 - `loop.yml` moved cards to a hardcoded `"In Review"` instead of
