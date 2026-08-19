@@ -70,6 +70,7 @@ say "init"
 "$CLI" init >/dev/null || fail "init failed"
 for want in avengers-12/config.yml avengers-12/lib/doctor.sh avengers-12/rules/constraints.md \
             avengers-12/lib/detect-project.sh avengers-12/lib/setup-status.sh \
+            avengers-12/lib/check-board.sh \
             .github/workflows/loop.yml .claude/agents/loop-implementer.md \
             .claude/skills/setup-workflow/SKILL.md; do
   [[ -e "$want" ]] || fail "init did not produce $want"
@@ -89,6 +90,8 @@ avengers-12/lib/detect-project.sh | jq -e '.isGitRepo == true' >/dev/null \
   || fail "detect-project.sh did not report a git repository"
 avengers-12/lib/setup-status.sh | jq -e 'has("labels") and has("gh")' >/dev/null \
   || fail "setup-status.sh produced unexpected JSON"
+# No board configured here, so this must pass and say so rather than complain.
+avengers-12/lib/check-board.sh >/dev/null || fail "check-board.sh failed with no board configured"
 
 say "the harness runs the scratch project's own build"
 bash avengers-12/lib/verify.sh >/dev/null 2>&1 || fail "verify.sh failed"

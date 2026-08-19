@@ -454,7 +454,7 @@ jobs:
           set -euo pipefail
           source avengers-12/lib/common.sh
           source avengers-12/lib/board.sh
-          board_set_status "$ISSUE" "In Review"
+          board_set_status "$ISSUE" "$LOOP_COL_IN_REVIEW"
 
       - name: Record run
         if: success()

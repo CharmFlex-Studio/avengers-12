@@ -2,7 +2,8 @@
 
 ## 0.2.0 — unreleased
 
-Setup no longer starts at a blank config file.
+Setup no longer starts at a blank config file, and a board that cannot be driven
+says so instead of failing silently.
 
 - `/setup-workflow` skill. Run it after `init`: it reads what kind of project this
   is, writes `config.yml` from that, creates the labels, and hands back the setup
@@ -14,6 +15,16 @@ Setup no longer starts at a blank config file.
 - `lib/setup-status.sh` — reports which setup steps already left a trace: labels,
   variable and secret *names*, and whether the workflows reached the default
   branch. Never reads a secret value.
+- `lib/check-board.sh`, run by `doctor` — verifies the board resolves and that
+  every column named in `board.columns` exists on it. Board operations are
+  non-fatal by design, so a card that cannot move used to produce one warning in
+  a job log and nothing else. A default GitHub Project has only Todo, In Progress
+  and Done, so In Review and Blocked silently did nothing on a fresh board.
+
+Fixed:
+
+- `loop.yml` moved cards to a hardcoded `"In Review"` instead of
+  `board.columns.inReview`. Renaming the column in config had no effect.
 
 ## 0.1.0 — 2026-08-19
 

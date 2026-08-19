@@ -220,6 +220,22 @@ else
 fi
 endgroup
 
+# --- 4f. the board can actually be driven ------------------------------------
+# Every board call in board.sh is non-fatal by design: the board tracks work, it
+# is not a safety control, and a broken board must not kill an otherwise good
+# run. The price is silence. A card that never moves produces one warning buried
+# in a job log, and the owner finds out by looking at the board days later.
+#
+# This is where that silence gets a voice. Skipped entirely when no board is
+# configured -- label mode is a supported way to run.
+group "Board"
+if bash "$HERE/check-board.sh" 2>&1 | sed 's/^/  /'; then
+  :
+else
+  note_problem "the board is configured but cannot be driven (see above)"
+fi
+endgroup
+
 # --- 5. every script the harness calls is present and parses -----------------
 group "Scripts"
 BAD=0

@@ -75,7 +75,30 @@ avengers-12/lib/doctor.sh
 Fix what it reports and run it again. Keep going until it is quiet. **Do not move on with
 doctor red**, and do not edit doctor to make it pass.
 
-## 2. Labels
+## 2. The board, if they want one
+
+```bash
+avengers-12/lib/check-board.sh
+```
+
+It exits 0 and says so when no board is configured — label mode is a supported way to
+run, and `board.optional: true` ships as the default. Do not push anyone towards a board.
+
+When a board **is** configured, this is the check that matters, because every board
+operation in the harness is deliberately non-fatal. A card that cannot move produces one
+warning inside a job log and nothing else: the run stays green, the card stays put, and
+the owner finds out days later by looking at the board.
+
+The failure it catches most often: **a default GitHub Project has only Todo, In Progress
+and Done.** There is no In Review and no Blocked. The loop then tries to move cards into
+two lanes that do not exist — including, at the worst moment, the Blocked lane an
+escalation depends on.
+
+Two ways to fix it, and the owner picks:
+- add the missing options to the board's Status field, or
+- rename `board.columns` in `config.yml` to whatever their board already calls them
+
+## 3. Labels
 
 Only when `gh` reports authenticated. Create whatever `setup-status.sh` lists as missing:
 
@@ -90,7 +113,7 @@ gh label create "loop:needs-spec"  --color 5319E7 --description "Not implementab
 Use the names from `config.yml`, not these, if the owner changed the `labels:` section.
 Adding a label that already exists is an error; skip the ones already present.
 
-## 3. Report what only the owner can do
+## 4. Report what only the owner can do
 
 Finish with a checklist of the browser steps, in order, marked with what you could verify.
 Keep it short and specific. Point at `avengers-12/docs/setup.md` for the detail rather than
@@ -114,7 +137,7 @@ Two things to say out loud, because they are the ones that waste an afternoon:
   `loop.yml` is merged there, replying to a blocked issue does nothing at all. If
   `workflowsOnDefaultBranch` is false, this is the most important item on the list.
 
-## 4. Offer the first run, do not take it
+## 5. Offer the first run, do not take it
 
 Tell the owner the first thing to try, and let them press it:
 
