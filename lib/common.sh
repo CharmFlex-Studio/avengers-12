@@ -117,6 +117,40 @@ LOOP_PRIOR_FILES_MAX="${LOOP_PRIOR_FILES_MAX:-$(cfg budget.priorFilesMax 200)}"
 LOOP_GIT_NAME="${LOOP_GIT_NAME:-$(cfg git.userName "avengers-12")}"
 LOOP_GIT_EMAIL="${LOOP_GIT_EMAIL:-$(cfg git.userEmail "loop@users.noreply.github.com")}"
 
+# --- acceptance criteria -----------------------------------------------------
+#
+# Reads an issue body on stdin, prints one line per usable acceptance criterion.
+# The caller counts the lines; zero means the issue cannot be implemented.
+#
+# This lives here, once, because two things need the same answer: preflight,
+# which refuses to start a run without criteria, and check-issue.sh, which tells
+# you whether your issue will pass BEFORE you spend a run finding out. Two copies
+# of this parser would drift, and then the tool that says "your issue is fine"
+# would be describing a different rule from the one that rejects it.
+#
+# What counts:
+#   - a heading line matching "acceptance criteria", case-insensitive, with or
+#     without #'s and **bold** markers
+#   - followed by lines that start with a real list marker: - * + 1. 1)
+#   - the section ends at the next heading
+#
+# A LIST MARKER IS REQUIRED. Counting any non-blank line meant a section reading
+# only "Acceptance criteria are unclear here." scored 1 and sailed through --
+# the single worst case to admit, because it is an explicit statement that
+# nobody knows what done looks like.
+acceptance_items() {
+  awk '
+      BEGIN { inSec = 0 }
+      tolower($0) ~ /^[[:space:]]*#{0,6}[[:space:]]*\**acceptance[[:space:]]+criteria/ { inSec = 1; next }
+      inSec && /^[[:space:]]*#{1,6}[[:space:]]/ { inSec = 0 }
+      inSec { print }
+    ' \
+    | grep -E '^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]+' \
+    | sed -E 's/^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]*(\[[ xX]\])?[[:space:]]*//' \
+    | grep -vE '^[[:space:]]*$' \
+    || true
+}
+
 # --- comment markers ---------------------------------------------------------
 #
 # Every comment the harness posts on an issue carries one of these HTML markers.

@@ -197,7 +197,7 @@ pass. It is never asked whether it behaved. The diff is inspected.
 | Run is red at the first step | Setup is incomplete. Run `npx avengers-12 doctor` |
 | `Invalid username or token` | The fine-grained token is not approved yet, or lacks a permission |
 | Card does not move on the board | Look at the top of the run summary — it now says why |
-| Issue got `loop:needs-spec` | Too vague to attempt. Add acceptance criteria |
+| Issue got `loop:needs-spec` | Too vague to attempt. Run `check-issue.sh` on it to see exactly why |
 | Run green but nothing happened | Read the summary. It says what it decided and why |
 | Nothing happens when you reply | The workflow is not on your default branch yet (step 3d) |
 
@@ -244,6 +244,15 @@ npx avengers-12 init      # copy the harness in (safe to re-run)
 npx avengers-12 doctor    # check the installation, 14 checks
 npx avengers-12 version
 ```
+
+Before you queue an issue, check it will be accepted:
+
+```bash
+avengers-12/lib/check-issue.sh --issue 36    # needs gh
+pbpaste | avengers-12/lib/check-issue.sh     # or just paste the text
+```
+
+It uses the same parser the gate uses, so it cannot tell you a different answer.
 
 `init --force` refreshes the scripts and workflows to the current version. It never touches
 `config.yml` or your run history, whatever flags you pass.

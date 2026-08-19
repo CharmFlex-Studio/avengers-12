@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.2 — 2026-08-19
+
+- `lib/check-issue.sh` — tells you whether an issue will pass preflight, before
+  you spend a run finding out. `--issue N` fetches it, or pipe the text in. It
+  names the two rules people miss: the heading must contain the words
+  "acceptance criteria" in that order (`AC` does not match), and every criterion
+  needs a list marker, because the verifier judges "does the diff satisfy item
+  3?" and a paragraph has no item 3.
+- The acceptance-criteria parser moved into `common.sh` as `acceptance_items()`,
+  shared by preflight and the new checker. Two copies would drift, and then the
+  tool saying "your issue is fine" would be describing a different rule from the
+  gate that rejects it.
+
 ## 0.2.1 — 2026-08-19
 
 The board now tells the truth. Every card move in this harness is paired with a

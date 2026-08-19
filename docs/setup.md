@@ -256,6 +256,24 @@ dies with nobody left to report it — and it has two separate `if:` conditions 
 `if: failure() || cancelled()`. A cancelled job is **not** a failed one, so `failure()`
 alone silently skips the step that saves your code, which is exactly what this test caught.
 
+## Will my issue be accepted?
+
+`preflight.sh` refuses an issue whose Acceptance criteria section it cannot parse, and the
+refusal arrives at the top of a red run. Check first instead:
+
+```bash
+avengers-12/lib/check-issue.sh --issue 36
+pbpaste | avengers-12/lib/check-issue.sh
+```
+
+Two rules, and both are easy to miss:
+
+- The heading must contain the words **acceptance criteria**, in that order. `AC` and
+  `Acceptance-criteria` do not match.
+- Every criterion needs a **list marker** — `- `, `- [ ] `, `* `, `1. `. A paragraph is not
+  a criterion. The verifier judges "does the diff satisfy item 3?", so there has to be an
+  item 3.
+
 ## Bootstrap a queue
 
 Most projects already have a to-do list or a fix list full of unchecked `- [ ]` items.

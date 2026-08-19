@@ -90,22 +90,14 @@ fi
 # `|| true` on the pipeline is load-bearing under `set -euo pipefail`: grep exits
 # 1 when a section contains no items at all, which without it would abort the
 # script here with no message instead of printing the refusal below.
-ACCEPTANCE_ITEMS="$(
-  printf '%s\n' "$BODY" \
-    | awk '
-        BEGIN { inSec = 0 }
-        # Case-insensitive on the whole line: real issues write "Acceptance Criteria",
-        # "acceptance criteria", and "## Acceptance criteria" interchangeably.
-        tolower($0) ~ /^[[:space:]]*#{0,6}[[:space:]]*\**acceptance[[:space:]]+criteria/ { inSec = 1; next }
-        inSec && /^[[:space:]]*#{1,6}[[:space:]]/ { inSec = 0 }
-        inSec { print }
-      ' \
-    | grep -E '^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]+' \
-    | sed -E 's/^[[:space:]]*([-*+]|[0-9]+[.)])[[:space:]]*(\[[ xX]\])?[[:space:]]*//' \
-    | grep -vE '^[[:space:]]*$' \
-    | wc -l | tr -d ' ' \
-    || true
-)"
+# The parser lives in common.sh as acceptance_items(), shared with
+# check-issue.sh so a "your issue is fine" answer and this refusal can never
+# describe different rules.
+#
+# `|| true` is load-bearing under `set -euo pipefail`: grep exits 1 when a
+# section contains no items at all, which without it would abort here with no
+# message instead of printing the refusal below.
+ACCEPTANCE_ITEMS="$(printf '%s\n' "$BODY" | acceptance_items | grep -cE '.' || true)"
 
 if [[ "${ACCEPTANCE_ITEMS:-0}" -lt 1 ]]; then
   problem "issue #$ISSUE has no usable Acceptance criteria"
