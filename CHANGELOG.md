@@ -1,9 +1,41 @@
 # Changelog
 
-## 0.2.0 — unreleased
+## 0.2.1 — 2026-08-19
 
-Setup no longer starts at a blank config file, and a board that cannot be driven
-says so instead of failing silently.
+The board now tells the truth. Every card move in this harness is paired with a
+bash step that changes a label; three of those pairs were broken, and all three
+failed silently because board operations are non-fatal by design.
+
+- Cards reached In Review but never In Progress. `board_ensure_item` added the
+  card, then read the item list once to get its id, assuming an add is
+  immediately visible. Projects v2 is GraphQL-backed and it is not: the read
+  came back empty, the id was empty, and the move was skipped. The In Review
+  move forty minutes later worked, because by then the listing had caught up —
+  which is exactly what it looks like from the outside. The id now comes from
+  `item-add --format json`, with a bounded retry (5 reads, ~15s) as a fallback.
+- `loop.yml` moved cards to a hardcoded `"In Review"` instead of
+  `board.columns.inReview`. Renaming that column in config had no effect.
+- `lib/sync-board.sh`, run by the triage job — reconciles every card's lane with
+  the labels on its issue. Two things changed labels and moved no card: triage,
+  which works through a model and is deliberately not allowed to drive the board,
+  and a human clicking a label in the GitHub UI, which nothing here is triggered
+  by at all. It reads the labels as they stand and moves whatever disagrees, so
+  it is safe at any point and safe to run twice.
+- `lib/check-board.sh`, run by `doctor` — verifies the board resolves and that
+  every column in `board.columns` exists on it. A default GitHub Project ships
+  with Todo, In Progress and Done only, so In Review and Blocked silently did
+  nothing on a fresh board.
+- A board that cannot move a card now says so on the run summary as a warning,
+  instead of one `warn` inside a collapsed log group. `preflight` states the
+  board mode before it claims, so a run with no board says that in one line.
+- `doctor` fails when a script in `lib/` has no caller anywhere. That is how
+  `sync-board.sh` sat complete and wired to nothing: dead code that looks alive
+  is worse than missing code, because you read the directory and assume the job
+  is done.
+
+## 0.2.0 — 2026-08-19
+
+Setup no longer starts at a blank config file.
 
 - `/setup-workflow` skill. Run it after `init`: it reads what kind of project this
   is, writes `config.yml` from that, creates the labels, and hands back the setup
@@ -15,23 +47,6 @@ says so instead of failing silently.
 - `lib/setup-status.sh` — reports which setup steps already left a trace: labels,
   variable and secret *names*, and whether the workflows reached the default
   branch. Never reads a secret value.
-- `lib/check-board.sh`, run by `doctor` — verifies the board resolves and that
-  every column named in `board.columns` exists on it. Board operations are
-  non-fatal by design, so a card that cannot move used to produce one warning in
-  a job log and nothing else. A default GitHub Project has only Todo, In Progress
-  and Done, so In Review and Blocked silently did nothing on a fresh board.
-
-- `lib/sync-board.sh`, run by the triage job — reconciles every card's lane with
-  the labels on its issue. Two things changed labels and moved no card: triage,
-  which works through a model and is deliberately not allowed to drive the board,
-  and a human clicking a label in the GitHub UI, which nothing here is triggered
-  by at all. It reads the labels as they stand and moves whatever disagrees, so
-  it is safe to run at any point and safe to run twice.
-- `doctor` now fails when a script in `lib/` has no caller anywhere. That is how
-  `sync-board.sh` sat complete and wired to nothing: dead code that looks alive
-  is worse than missing code, because you read the directory and assume the job
-  is done.
-
 Fixed:
 
 - `loop.yml` moved cards to a hardcoded `"In Review"` instead of
