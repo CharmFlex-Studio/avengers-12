@@ -172,6 +172,12 @@ jobs:
       # It fails the job on purpose. An incoherent harness should refuse to
       # start, the same way the gate refuses a bad diff.
       - name: Doctor — the harness agrees with itself
+        # The board check inside doctor talks to the Projects API, so it needs
+        # the same token every other board step uses. Without it, `gh project
+        # view` fails and the check reports a working board as unreadable —
+        # which is worse than not checking at all.
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
         run: avengers-12/lib/doctor.sh
 
       - name: Check credentials

@@ -2,6 +2,14 @@
 
 ## 0.2.2 — 2026-08-19
 
+- Fixed: `doctor`'s board check reported a working board as unreadable. The
+  Doctor step in `loop.yml` had no `GH_TOKEN`, so `gh project view` ran with no
+  credential and failed the same way a broken board does. It now has the token.
+- `check-board.sh` no longer blames the board for a missing credential. It
+  checks whether `gh` is installed and authenticated first, and says so — a
+  check that misdiagnoses sends you to audit your token scopes and your org
+  approval when the real answer is that the step was never given a token.
+
 - `lib/check-issue.sh` — tells you whether an issue will pass preflight, before
   you spend a run finding out. `--issue N` fetches it, or pipe the text in. It
   names the two rules people miss: the heading must contain the words

@@ -48,6 +48,25 @@ fi
 
 say "board: $BOARD_OWNER / project #$BOARD_NUMBER"
 
+# --- 1b. can we talk to GitHub at all? --------------------------------------
+# Everything below asks the Projects API a question, and every one of those
+# questions fails the same way when there is no credential: empty answer, no
+# error. Reporting that as "your board cannot be read" sends people to check
+# their board number, their token scopes and their org approval, when the real
+# answer is that this particular step was never given a token.
+if ! command -v gh >/dev/null 2>&1; then
+  good "gh is not installed here, so the board cannot be checked from this machine"
+  say  "    This is not a board problem. Run it where gh is available, or read the"
+  say  "    Board section of a workflow run."
+  exit 0
+fi
+if ! gh auth status >/dev/null 2>&1; then
+  good "gh is not authenticated here, so the board cannot be checked"
+  say  "    This is not a board problem. Locally: run \`gh auth login\`."
+  say  "    In a workflow: the step needs GH_TOKEN set to your Projects token."
+  exit 0
+fi
+
 # --- 2. can the token read it? ----------------------------------------------
 # The usual cause of failure here is not a missing board. It is a token without
 # account-level "Projects: Read and write", which authenticates perfectly and
