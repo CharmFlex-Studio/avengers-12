@@ -13,12 +13,21 @@ automatic.
 
 ```bash
 npx avengers-12 init      # copies the harness into this repository
-# edit avengers-12/config.yml
-npx avengers-12 doctor    # run it until it is quiet
 ```
 
-Then read [`docs/setup.md`](docs/setup.md) for the parts a script cannot do for you:
-the GitHub App, the token, the labels, the board. Budget about twenty minutes.
+Then, in Claude Code:
+
+```
+/setup-workflow
+```
+
+That reads what kind of project this is, writes `config.yml` from it, creates the labels,
+and hands you a checklist of the steps that happen in a browser and cannot be automated —
+the GitHub App, the token, the board. Budget about twenty minutes, most of it in the
+browser.
+
+Prefer to do it by hand? Edit `avengers-12/config.yml`, run `npx avengers-12 doctor` until
+it is quiet, and follow [`docs/setup.md`](docs/setup.md).
 
 **Requirements:** Node 18+ to install. The harness itself runs on the GitHub runner and
 needs `bash`, `jq` and `python3`, all of which `ubuntu-latest` already has. Nothing is

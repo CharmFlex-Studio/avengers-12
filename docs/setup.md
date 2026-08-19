@@ -6,6 +6,11 @@ them for you. Budget about twenty minutes.
 Until this is done the workflows exist but every run fails at the first step, which is the
 intended behaviour — the harness fails closed.
 
+> **There is a shortcut for the parts that are not browser work.** In Claude Code, run
+> `/setup-workflow`. It writes `config.yml` from what your project actually is, creates the
+> labels, and tells you which of the steps below are still outstanding. It cannot do the
+> browser steps — nothing can — so read on for those.
+
 > **Two placeholders run through this guide.** `YOUR-ORG` is whoever owns the repository —
 > an organisation, or your own username. `YOUR-REPO` is the repository itself. Every other
 > name, path and setting is literal: type it exactly as written.

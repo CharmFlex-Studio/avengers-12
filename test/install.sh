@@ -69,7 +69,9 @@ CLI="./node_modules/.bin/avengers-12"
 say "init"
 "$CLI" init >/dev/null || fail "init failed"
 for want in avengers-12/config.yml avengers-12/lib/doctor.sh avengers-12/rules/constraints.md \
-            .github/workflows/loop.yml .claude/agents/loop-implementer.md; do
+            avengers-12/lib/detect-project.sh avengers-12/lib/setup-status.sh \
+            .github/workflows/loop.yml .claude/agents/loop-implementer.md \
+            .claude/skills/setup-workflow/SKILL.md; do
   [[ -e "$want" ]] || fail "init did not produce $want"
 done
 [[ -x avengers-12/lib/doctor.sh ]] || fail "init lost the executable bit"
@@ -82,6 +84,12 @@ echo "# my edit" >> avengers-12/config.yml
 "$CLI" init --force >/dev/null || fail "second init failed"
 grep -q "# my edit" avengers-12/config.yml || fail "init --force destroyed config.yml"
 
+say "the setup scripts run and produce JSON"
+avengers-12/lib/detect-project.sh | jq -e '.isGitRepo == true' >/dev/null \
+  || fail "detect-project.sh did not report a git repository"
+avengers-12/lib/setup-status.sh | jq -e 'has("labels") and has("gh")' >/dev/null \
+  || fail "setup-status.sh produced unexpected JSON"
+
 say "the harness runs the scratch project's own build"
 bash avengers-12/lib/verify.sh >/dev/null 2>&1 || fail "verify.sh failed"
 
@@ -90,12 +98,16 @@ say "nothing from the origin repository leaked into the install"
 # check named four directories and missed .github/ISSUE_TEMPLATE, which was
 # carrying `composeApp` and `iosApp` straight into a stranger's repository.
 # A leak check with an allowlist of places to look is a leak check with holes.
-LEAKS="$(grep -rnliE 'gradlew|composeApp|iosApp|webview-sdk|androidUnitTest|korean' \
+# The pattern is names that mean nothing outside the project this came from.
+# `gradlew` is deliberately NOT among them: detect-project.sh names it, and npm
+# and go.mod and pom.xml beside it, because recognising build systems is its
+# job. Flagging that would be flagging the genericity as if it were the leak.
+LEAKS="$(grep -rnliE 'composeApp|iosApp|webview-sdk|androidUnitTest|korean|charmflex' \
   avengers-12 .github .claude 2>/dev/null \
   | grep -v '^avengers-12/config\.yml$' || true)"
 if [[ -n "$LEAKS" ]]; then
   printf '%s\n' "$LEAKS" >&2
-  grep -rniE 'gradlew|composeApp|iosApp|webview-sdk|androidUnitTest|korean' \
+  grep -rniE 'composeApp|iosApp|webview-sdk|androidUnitTest|korean|charmflex' \
     avengers-12 .github .claude 2>/dev/null | grep -v '^avengers-12/config\.yml:' >&2
   fail "a path from the origin repository survived the extraction"
 fi
