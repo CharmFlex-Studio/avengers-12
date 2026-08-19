@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3 - 2026-08-20
+
+Enhance harness
+
+- Check and fill in by AI later
+
 ## 0.2.2 — 2026-08-19
 
 Two independent reviews of the whole harness. Findings, worst first:
