@@ -350,12 +350,12 @@ ESCALATED_AT="$(issue_last_escalation_at "$ISSUE")"
 if [[ -n "$ESCALATED_AT" ]]; then
   REPLIES="$(
     issue_comments "$ISSUE" \
-      | jq -r --arg since "$ESCALATED_AT" --arg m "$LOOP_MARKER_ANY" '
+      | jq -r --arg since "$ESCALATED_AT" --arg m "$LOOP_MARKER_ANY" "
           .[]
-          | select(.createdAt > $since)
-          | select(.body | test($m) | not)
-          | "### \(.login) — \(.createdAt)\n\n\(.body)\n"
-        ' 2>/dev/null || true
+          | select(.createdAt > \$since)
+          | select($LOOP_JQ_UNQUOTED | test(\$m) | not)
+          | \"### \(.login) — \(.createdAt)\n\n\(.body)\n\"
+        " 2>/dev/null || true
   )"
   if [[ -n "$REPLIES" ]]; then
     {

@@ -43,11 +43,25 @@ issue_comments() {
 #   kind = loop   -> newest comment carrying any loop marker
 #   kind = human  -> newest comment carrying none
 # Prints an ISO8601 timestamp, or nothing when there is no such comment.
+# Quoted lines are stripped before the marker is looked for, and that is the
+# whole point of this function being more than a one-line grep.
+#
+# GitHub's "Quote reply" copies the raw markdown of the comment you are replying
+# to, HTML comments included, each line prefixed with "> ". Reply to an
+# escalation that way -- the single most natural way to answer a specific
+# question -- and your answer contains `<!-- loop-escalation -->`. The loop then
+# reads its own marker in your text, files your reply as one of its own
+# comments, and concludes nobody has answered. The issue stays blocked forever
+# and every further reply lands in the same hole.
+#
+# A marker inside a quote is a record of what was said, not a claim about who is
+# speaking. Only unquoted lines say who is speaking.
 issue_last_comment_at() {
   local issue="$1" kind="$2" filter
+  local unquoted="$LOOP_JQ_UNQUOTED"
   case "$kind" in
-    loop)  filter='select(.body | test($m))' ;;
-    human) filter='select(.body | test($m) | not)' ;;
+    loop)  filter="select($unquoted | test(\$m))" ;;
+    human) filter="select($unquoted | test(\$m) | not)" ;;
     *)     warn "issue_last_comment_at: unknown kind '$kind'"; return 0 ;;
   esac
   issue_comments "$issue" \
@@ -56,10 +70,15 @@ issue_last_comment_at() {
 }
 
 # issue_last_escalation_at <n> -> ISO8601 of the newest escalation comment
+# Quotes stripped here too, and this is the copy that actually caused the
+# deadlock. A human quote-replying to an escalation used to become the newest
+# "escalation", so their own answer was compared against their own comment and
+# always lost. The issue then stayed blocked no matter how many times they
+# replied.
 issue_last_escalation_at() {
   issue_comments "$1" \
     | jq -r --arg m "$LOOP_MARKER_ESCALATION" \
-        '[.[] | select(.body | contains($m))] | last | .createdAt // empty' 2>/dev/null \
+        "[.[] | select($LOOP_JQ_UNQUOTED | contains(\$m))] | last | .createdAt // empty" 2>/dev/null \
     || true
 }
 

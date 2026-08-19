@@ -168,6 +168,19 @@ LOOP_MARKER_NOTICE='<!-- loop-notice -->'
 # One ERE covering all three, for jq `test()` and grep.
 LOOP_MARKER_ANY='<!-- loop-(escalation|triage-verdict|notice) -->'
 
+# A jq expression: the comment body with quoted lines removed.
+#
+# GitHub's "Quote reply" copies the raw markdown you are replying to, HTML
+# comments included, each line prefixed with "> ". Reply to an escalation that
+# way and your answer contains `<!-- loop-escalation -->`. Every marker test
+# must strip quotes first, or two things go wrong at once: your reply is filed
+# as a loop comment, AND it becomes the newest escalation — so your answer can
+# never be newer than "the last escalation", and the issue is blocked forever.
+#
+# A marker inside a quote records what was said. Only an unquoted marker says
+# who is speaking.
+LOOP_JQ_UNQUOTED='(.body | split("\n") | map(select(test("^\\s*>") | not)) | join("\n"))'
+
 # --- output -----------------------------------------------------------------
 
 _loop_stamp() { date -u +%H:%M:%S; }

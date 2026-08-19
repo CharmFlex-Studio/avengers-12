@@ -2,6 +2,15 @@
 
 ## 0.2.2 — 2026-08-19
 
+- Fixed: replying to an escalation with GitHub's **Quote reply** left the issue
+  blocked forever. Quote reply copies the raw markdown you are replying to, HTML
+  comments included, so the reply contained `<!-- loop-escalation -->`. Two
+  things then went wrong at once: the reply was filed as one of the loop's own
+  comments, *and* it became the newest escalation — so the answer was compared
+  against itself and always lost. Every further reply landed in the same hole.
+  All three marker tests now strip quoted lines first, through one shared jq
+  expression rather than three copies.
+
 - `check-board.sh` now tests whether the token can WRITE, not just read. Every
   check before this was a read, and a read-only token passes all of them — which
   is how a board sails through setup and then refuses every move at run time,
