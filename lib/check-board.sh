@@ -134,5 +134,53 @@ if [[ -n "$MISSING" ]]; then
   say "    $AVENGERS_CONFIG under board.columns to match what you use."
 fi
 
+# --- 5. can the token WRITE? ------------------------------------------------
+# Everything above is a read, and a read-only token passes every one of them.
+# That is exactly how a board sails through setup and then silently refuses
+# every move at run time: "Resource not accessible by personal access token",
+# once per card, inside a job log nobody opens until the board looks wrong.
+#
+# The test is a no-op write: set some card's Status to the value it already has.
+# GitHub still requires the write permission for that, so it proves access
+# without moving anything or leaving a trace on the board.
+group_written=false
+FIRST_ITEM="$(gh project item-list "$BOARD_NUMBER" --owner "$BOARD_OWNER" \
+                --format json --limit 1 2>/dev/null \
+              | jq -r --arg f "$BOARD_STATUS_FIELD" '
+                  .items[0] // empty
+                  | {id: .id, status: (.[$f] // .[$f | ascii_downcase] // .status // "")}
+                  | select(.status != "")
+                  | "\(.id)\t\(.status)"' 2>/dev/null || true)"
+
+if [[ -z "$FIRST_ITEM" ]]; then
+  say ""
+  say "    Write access not tested: the board has no card with a status yet."
+  say "    Add one issue to it and run this again — a read-only token passes"
+  say "    every check above and then refuses every move at run time."
+else
+  ITEM_ID="${FIRST_ITEM%%$'\t'*}"
+  ITEM_STATUS="${FIRST_ITEM##*$'\t'}"
+  SAME_OPTION="$(board_status_option_id "$ITEM_STATUS")"
+  if [[ -n "$SAME_OPTION" ]]; then
+    WRITE_ERR="$(gh project item-edit --id "$ITEM_ID" --project-id "$PROJECT_ID" \
+                   --field-id "$FIELD_ID" --single-select-option-id "$SAME_OPTION" \
+                   2>&1 >/dev/null)" && good "the token can write (tested by setting a card to the lane it is already in)" || {
+      bad "the token can READ this board but cannot WRITE to it"
+      [[ -n "$WRITE_ERR" ]] && say "        GitHub said: $WRITE_ERR"
+      say ""
+      say "    Cards will never move. Every other check above passes, because"
+      say "    every other check is a read."
+      say ""
+      say "    Fix: the fine-grained PAT needs Projects: Read and write."
+      say "      - an ORG-owned board -> Organisation permissions -> Projects"
+      say "      - a personal board   -> Account permissions -> Projects"
+      say "    Then an org owner must approve it again: any permission change"
+      say "    puts the token back in Settings -> Personal access tokens ->"
+      say "    Pending requests, and a pending token reads fine and writes nothing."
+      PROBLEMS=$((PROBLEMS + 1))
+    }
+  fi
+fi
+
 [[ "$PROBLEMS" -eq 0 ]] || exit 1
 exit 0

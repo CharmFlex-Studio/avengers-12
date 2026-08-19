@@ -2,6 +2,14 @@
 
 ## 0.2.2 — 2026-08-19
 
+- `check-board.sh` now tests whether the token can WRITE, not just read. Every
+  check before this was a read, and a read-only token passes all of them — which
+  is how a board sails through setup and then refuses every move at run time,
+  once per card, inside a job log nobody opens until the board looks wrong. The
+  test is a no-op write: it sets some card's Status to the value it already has.
+  GitHub still requires the write permission for that, so it proves access
+  without moving anything.
+
 - Board failures now print what GitHub actually said. `item-edit` and `item-add`
   sent stderr to /dev/null and a guess was printed in its place — "the token
   needs Projects: Read and write" — which is the commonest cause and not the
