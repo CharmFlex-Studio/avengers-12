@@ -47,7 +47,7 @@ would cut roughly 375 runs a month down to about 28.
 
 ## Kill switch
 
-Set repo variable `LOOP_PAUSE_ALL` to `true`. Both workflows skip at the job level, and
+Set repo variable `LOOP_PAUSE_ALL` to `true`. `loop.yml` skips at the job level, and
 `preflight.sh` checks it again in case it was flipped while a run was queued.
 
 Resume by setting it back to `false`.

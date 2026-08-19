@@ -101,6 +101,35 @@ endgroup
 # --- 4. paths the config names actually exist --------------------------------
 # A test directory that does not exist is the worst kind of green: the build
 # passes with zero tests and the verifier's "tests are green" means nothing.
+# --- 3b. the literals GitHub forces into the workflows ------------------------
+# A job-level `if:` is evaluated before any step runs, so it cannot read
+# config.yml — the label name has to be written into the YAML. config.yml invites
+# you to rename labels ("change only if these names collide"), and renaming
+# `labels.blocked` then silently kills reply-to-resume: no run is created at all,
+# so there is no red run, no summary and no annotation to notice. The escalation
+# comment still promises "reply to this comment and I will carry on".
+group "Workflow literals match config"
+LIT_OK=1
+check_literal() {
+  local key="$1" file="$2" want; want="$(cfg "$key")"
+  [[ -n "$want" ]] || return 0
+  if [[ ! -f "$file" ]]; then
+    note_problem "no $file to check '$key' against"; LIT_OK=0; return 0
+  fi
+  if grep -qF "'$want'" "$file" || grep -qF "\"$want\"" "$file"; then
+    return 0
+  fi
+  note_problem "$key is '$want' but $file does not mention it — GitHub cannot read config.yml from a job-level if:, so the name must appear in the YAML too"
+  LIT_OK=0
+}
+check_literal labels.blocked ".github/workflows/loop.yml"
+# Only loop-board-done.yml needs the prefix as a literal: its trigger is a
+# job-level `if: startsWith(...)`. Everything in loop.yml runs inside a step and
+# reads $LOOP_BRANCH_PREFIX.
+check_literal branch.prefix  ".github/workflows/loop-board-done.yml"
+[[ "$LIT_OK" -eq 1 ]] && note_ok "every config value the workflows hardcode still matches"
+endgroup
+
 group "Paths"
 TEST_DIR="$(cfg tests.directory)"
 if [[ -n "$TEST_DIR" && ! -d "$TEST_DIR" ]]; then

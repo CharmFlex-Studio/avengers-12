@@ -323,9 +323,16 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
         run: |
           set -euo pipefail
+          # Sourced for $LOOP_BRANCH_PREFIX. This line used to hardcode
+          # "origin/loop/issue-", so a project with its own branch.prefix looked
+          # for a marker on a branch that does not exist, silently fell back to
+          # the default base, and then preflight — which reads the prefix
+          # correctly — refused the run and told them to delete a branch that was
+          # perfectly fine.
+          source avengers-12/lib/common.sh
           BASE="${BASE_INPUT:-$REF_NAME}"
           if [ "$EVENT_NAME" = "issue_comment" ] && [ -z "${BASE_INPUT:-}" ]; then
-            RECORDED="$(bash avengers-12/lib/recorded-base.sh read "origin/loop/issue-${ISSUE}" "$ISSUE" || true)"
+            RECORDED="$(bash avengers-12/lib/recorded-base.sh read "origin/${LOOP_BRANCH_PREFIX}${ISSUE}" "$ISSUE" || true)"
             if [ -n "$RECORDED" ] && git rev-parse --verify "origin/$RECORDED" >/dev/null 2>&1; then
               BASE="$RECORDED"
               echo "::notice::Resuming #${ISSUE} on its recorded base branch '$RECORDED'"

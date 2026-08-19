@@ -174,7 +174,7 @@ Assign exactly one to every Todo item. This is the part that matters.
 First, read the actual size ceiling — do not guess it, and do not hardcode a number:
 
 ```bash
-grep max_files_changed avengers-12/config.yml
+python3 avengers-12/lib/config.py --get gate.maxFilesChanged
 ```
 
 That value is enforced by `avengers-12/lib/check-gate.sh` **after** the implement run finishes.
@@ -184,9 +184,9 @@ by definition, however well written it is.
 
 | Verdict | Means | Test |
 |---|---|---|
-| `READY` | an unattended run can do this | acceptance criteria are checkable without asking a question, no open design decision, **and you expect the diff to land within `max_files_changed`** |
+| `READY` | an unattended run can do this | acceptance criteria are checkable without asking a question, no open design decision, **and you expect the diff to land within `gate.maxFilesChanged`** |
 | `NEEDS-SPEC` | good idea, unusable as written | no acceptance criteria, or criteria that say "should feel better" |
-| `TOO-BIG` | real work, wrong shape | spans several independent concerns, **or you expect it to exceed `max_files_changed`**; propose the split |
+| `TOO-BIG` | real work, wrong shape | spans several independent concerns, **or you expect it to exceed `gate.maxFilesChanged`**; propose the split |
 | `BLOCKED` | cannot proceed | depends on an unmade decision, an external service, or another issue |
 
 Estimating a diff before the work exists is inexact, so treat the ceiling as a budget to stay
@@ -197,7 +197,7 @@ human can disagree with the number rather than only with the conclusion.
 
 Two reasons to call `TOO-BIG`:
 
-1. **Size** — the diff won't fit under `max_files_changed`. Always sufficient on its own.
+1. **Size** — the diff won't fit under `gate.maxFilesChanged`. Always sufficient on its own.
 2. **Shape** — the issue bundles concerns that are **mutually independent**: each could be
    built, reviewed, and merged on its own, in any order, without the others existing.
    Sufficient on its own, but read the test below before applying it.

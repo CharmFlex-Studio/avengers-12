@@ -47,10 +47,14 @@
   worse than no doc, because you plan against it.
   `avengers-12/lib/check-gate.sh` inspects the real diff after you exit.
 
-The authoritative list is `avengers-12/config.yml`, checked by `avengers-12/lib/check-gate.sh` against the
-actual diff after the agent has finished. `avengers-12/settings/implement.json` mirrors that list as
-Write/Edit denies, so a denied path is refused when you try to write it rather than an hour
-later at the gate. When one changes, change the other.
+The authoritative list is `avengers-12/config.yml`, checked by `avengers-12/lib/check-gate.sh` against
+the actual diff after the agent has finished. It is also the only place the list is written:
+`avengers-12/lib/emit-settings.sh` turns every `gate.deny` entry into a `Write()` and an
+`Edit()` rule before each run, so a denied path is refused the moment you try to write it
+rather than an hour later at the gate. **Do not copy the list into
+`avengers-12/settings/implement.json`** — that file holds only the rules that are the same
+for every project. Two copies of a denylist drift, and the drifted one is always the one
+you are reading.
 
 ## Code
 
@@ -101,7 +105,9 @@ later at the gate. When one changes, change the other.
 - **[machine]** One run at a time — `concurrency: group: loop` in `loop.yml`, covering
   triage and implement together.
 - **[machine]** Turn cap (`--max-turns`) and wall clock (`timeout-minutes: 45`).
-- **[machine]** Kill switch: repo variable `LOOP_PAUSE_ALL=true` skips both workflows.
+- **[machine]** Kill switch: repo variable `LOOP_PAUSE_ALL=true` stops `loop.yml` — triage and implement both. `loop-board-done.yml` is NOT paused by
+  it: it only reacts to a pull request closing, and a card stranded in the wrong lane
+  because the kill switch was on is a worse outcome than it doing its one job.
 
 ---
 <!-- Add your own rules below. Use plain English. The loop reads this verbatim. -->

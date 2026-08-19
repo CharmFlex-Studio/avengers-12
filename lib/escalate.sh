@@ -198,11 +198,17 @@ fi
 sed -E 's/@([Cc]laude)/@<!-- -->\1/g' "$REPORT" > "$REPORT.safe" && mv "$REPORT.safe" "$REPORT"
 
 # --- 1. comment on the issue -------------------------------------------------
-if gh issue comment "$ISSUE" --body-file "$REPORT" >/dev/null 2>&1; then
+COMMENT_ERR="$(gh issue comment "$ISSUE" --body-file "$REPORT" 2>&1 >/dev/null)" && {
   log "posted blocked comment on #$ISSUE"
-else
-  warn "could not comment on #$ISSUE — the report survives only in the artifact"
-fi
+  true
+} || {
+  # This is the comment the whole resume design rests on: no escalation, no
+  # question for the owner to answer. Losing it silently leaves an issue
+  # labelled blocked with nothing on it explaining why.
+  caution "Could not post the escalation on #$ISSUE — the report survives only in the run artifact, and the issue now says blocked with no question on it."
+  [[ -n "$COMMENT_ERR" ]] && printf '  GitHub said: %s\n' "$COMMENT_ERR" >&2
+  true
+}
 
 # --- 2. relabel so triage and the picker can see it -------------------------
 # Removes and the add are separate calls: `--add-label X` fails the whole

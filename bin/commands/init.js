@@ -48,6 +48,37 @@ function walk(dir, base = "") {
   return out;
 }
 
+// The harness writes everything it needs during a run into .loop/ — the brief,
+// the evidence packet, the generated permission rules, the agent's own notes.
+// None of it belongs in your repository.
+//
+// Left untracked-but-not-ignored it does real damage twice over: `git add -A`
+// sweeps ~18 scratch files into the commit, so every draft PR is a huge diff for
+// a one-line change; and check-gate counts them as changed files, so the guard
+// that refuses a run where the agent produced NOTHING can never fire — an empty
+// run passes the gate and opens a PR.
+//
+// Appended rather than written, so an existing .gitignore is never replaced.
+function ensureLoopIgnored(targetRoot, report, dryRun) {
+  const rel = ".gitignore";
+  const abs = path.join(targetRoot, rel);
+  const existing = fs.existsSync(abs) ? fs.readFileSync(abs, "utf8") : "";
+
+  if (existing.split("\n").some((line) => line.trim().replace(/\/$/, "") === ".loop")) {
+    report.skipped.push(`${rel} (already ignores .loop/)`);
+    return;
+  }
+
+  if (!dryRun) {
+    const sep = existing === "" || existing.endsWith("\n") ? "" : "\n";
+    fs.appendFileSync(
+      abs,
+      `${sep}\n# avengers-12 scratch space, written fresh every run\n.loop/\n`
+    );
+  }
+  report[existing ? "replaced" : "created"].push(`${rel} (+ .loop/)`);
+}
+
 function run({ packageRoot, targetRoot, force, dryRun }) {
   const report = { created: [], skipped: [], replaced: [] };
 
@@ -82,6 +113,8 @@ function run({ packageRoot, targetRoot, force, dryRun }) {
   for (const [fromRel, toRel] of COPY_ONCE) {
     place(path.join(packageRoot, fromRel), toRel, { protectedFile: true });
   }
+
+  ensureLoopIgnored(targetRoot, report, dryRun);
 
   print(report, { dryRun, force });
   return 0;

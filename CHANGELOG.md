@@ -2,6 +2,51 @@
 
 ## 0.2.2 — 2026-08-19
 
+Two independent reviews of the whole harness. Findings, worst first:
+
+- **`init` now ensures `.loop/` is gitignored.** It never did, and the package's
+  own `.gitignore` is not shipped. So from the first run the scratch directory
+  was untracked-but-not-ignored: `git add -A` swept ~18 bookkeeping files into
+  every commit, making a one-line fix look like a nineteen-file PR — and
+  `check-gate.sh` counted them, so the guard that refuses a run where the agent
+  produced *nothing* could never fire. An empty run passed the gate and opened a
+  pull request.
+- **`issue_blocked_at` read one page per line.** `gh api --paginate` prints one
+  JSON array per page, so an un-slurped filter emits one timestamp per page. On
+  an issue blocked more than once the caller compared against the *oldest* block,
+  decided a stale reply had answered the newest question, and re-queued the issue
+  — burning a run to stop in the same place. Its sibling twenty lines below had
+  the correct form and a comment explaining this exact trap.
+- **`doctor` now checks the values the workflows must hardcode.** A job-level
+  `if:` cannot read `config.yml`, so `labels.blocked` and `branch.prefix` appear
+  literally in the YAML. Renaming a label — which `config.yml` invites — silently
+  killed reply-to-resume: no run is created, so there is no red run, no summary,
+  nothing to read, while the escalation comment still promises the loop will
+  carry on.
+- **`loop.yml` no longer hardcodes `loop/issue-`** when looking up a recorded
+  base branch. A custom `branch.prefix` made it miss the marker, fall back to the
+  default base, and then be refused by preflight — which reads the prefix
+  correctly — with advice to delete a branch that was fine.
+- **The board write-test sampled one card.** `--limit 1`, and a card added by
+  `board_ensure_item` has no status until something moves it, so the check often
+  skipped itself and said "the board has no card with a status" about a board
+  full of them. It now looks at up to 100 and says plainly when it could not
+  test.
+- **A failed escalation now says why.** `gh issue comment` discarded GitHub's
+  error. That is the one comment the entire resume design rests on: without it an
+  issue is labelled blocked with no question on it.
+- **Fixed four documentation claims** the code does not back, one of them
+  `[machine]`-marked: `rules/constraints.md` told you to hand-mirror `gate.deny`
+  into `settings/implement.json` — reintroducing by hand the drift
+  `emit-settings.sh` exists to abolish; `LOOP_PAUSE_ALL` was said to stop both
+  workflows and stops one; and `max_files_changed` was named in four places
+  including a `grep` command, for a key called `gate.maxFilesChanged`.
+- **The contradictory-labels warning was false.** It said issues carrying both
+  `loop:ready` and `loop:needs-spec` were "being withheld by a stale label". They
+  are not withheld — `loop:ready` wins and they run. The issue template stamps
+  `loop:needs-spec` on every new issue, so the false alarm fired on the normal
+  path.
+
 - The advisory reviewer is a config key, `review.agent`, instead of
   `kotlin-reviewer` written into the implement skill. Every project in another
   language either got a review from an agent that did not understand its code,

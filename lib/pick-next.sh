@@ -285,8 +285,10 @@ if [[ "$COUNT" -eq 0 ]]; then
   )"
   if [[ -n "$CONTRADICTORY" ]]; then
     summary "> [!IMPORTANT]"
-    summary "> **These issues were judged ready and are being withheld by a stale label.**"
-    summary "> Remove the blocking label and they become eligible immediately."
+    summary "> **These issues carry \`loop:ready\` together with \`loop:needs-spec\`.**"
+    summary "> \`loop:ready\` wins: they ARE eligible and the loop will pick them up. The"
+    summary "> issue template stamps \`loop:needs-spec\` on every new issue, so this is"
+    summary "> normal until you clear it. Remove \`loop:needs-spec\` to stop seeing them here."
     summary ""
     printf '%s\n' "$CONTRADICTORY" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
     summary ""

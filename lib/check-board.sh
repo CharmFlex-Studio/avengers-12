@@ -144,17 +144,24 @@ fi
 # GitHub still requires the write permission for that, so it proves access
 # without moving anything or leaving a trace on the board.
 group_written=false
+# --limit 1 used to sample exactly one card and then report a fact about the
+# whole board. A card added by board_ensure_item has NO status until something
+# moves it, so the one card sampled was often the one card that could not be
+# used — and the check skipped itself on a board full of usable ones.
 FIRST_ITEM="$(gh project item-list "$BOARD_NUMBER" --owner "$BOARD_OWNER" \
-                --format json --limit 1 2>/dev/null \
+                --format json --limit 100 2>/dev/null \
               | jq -r --arg f "$BOARD_STATUS_FIELD" '
-                  .items[0] // empty
-                  | {id: .id, status: (.[$f] // .[$f | ascii_downcase] // .status // "")}
-                  | select(.status != "")
+                  [.items[]?
+                   | {id: .id, status: (.[$f] // .[$f | ascii_downcase] // .status // "")}
+                   | select(.status != "")]
+                  | first // empty
                   | "\(.id)\t\(.status)"' 2>/dev/null || true)"
 
 if [[ -z "$FIRST_ITEM" ]]; then
   say ""
-  say "    Write access not tested: the board has no card with a status yet."
+  say "    Write access NOT tested: no card on this board has a status yet, so"
+  say "    there is nothing to write to harmlessly. A read-only token would pass"
+  say "    every check above and then refuse every move at run time."
   say "    Add one issue to it and run this again — a read-only token passes"
   say "    every check above and then refuses every move at run time."
 else

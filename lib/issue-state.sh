@@ -119,10 +119,17 @@ issue_last_escalation_at() {
 issue_blocked_at() {
   local issue="$1" repo="${GITHUB_REPOSITORY:-}"
   [[ -n "$repo" ]] || return 0
-  gh api "repos/${repo}/issues/${issue}/events" --paginate 2>/dev/null \
-    | jq -r --arg l "$LOOP_LABEL_BLOCKED" '
-        [.[] | select(.event == "labeled" and .label.name == $l)]
-        | sort_by(.created_at) | last | .created_at // empty' 2>/dev/null \
+  # `-s` and per_page=100 for the same reason issue_claimed_at below gives:
+  # --paginate prints one JSON array PER PAGE, so a non-slurped jq runs once per
+  # page and prints one timestamp per page. The caller then compares a
+  # multi-line string, which in practice means it reads the OLDEST block --
+  # exactly backwards. An issue blocked twice would be treated as answered by a
+  # reply that predates the second question.
+  gh api "repos/${repo}/issues/${issue}/events?per_page=100" --paginate 2>/dev/null \
+    | jq -rs --arg l "$LOOP_LABEL_BLOCKED" '
+        ((add // [])
+         | [.[] | select(.event == "labeled" and .label.name == $l)]
+         | sort_by(.created_at) | last | .created_at // empty)' 2>/dev/null \
     || true
 }
 

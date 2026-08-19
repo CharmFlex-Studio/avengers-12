@@ -42,9 +42,9 @@ second kind as optional is how a loop drifts, so know the difference:
 
 | Rule | Enforced by |
 |---|---|
-| Path denylist | `avengers-12/lib/check-gate.sh` after you finish; also `avengers-12/settings/implement.json` deny rules while you work, which now mirror `avengers-12/config.yml` entry for entry so a denied write is refused at the moment you attempt it rather than an hour later at the gate |
+| Path denylist | `avengers-12/lib/check-gate.sh` after you finish; also `Write()`/`Edit()` deny rules while you work, generated from `gate.deny` by `avengers-12/lib/emit-settings.sh` before each run, so a denied write is refused the moment you attempt it rather than an hour later at the gate |
 | No push, no PR creation, no merge | harness deny rules; a workflow step does the pushing |
-| Max files per change | `check-gate.sh` (`max_files_changed` in `avengers-12/config.yml`) |
+| Max files per change | `check-gate.sh` (`gate.maxFilesChanged` in `avengers-12/config.yml`) |
 | Tests must pass | `avengers-12/lib/verify.sh`, run independently of anything you report |
 | Max 3 fix attempts | `.loop/attempts.json`, written by `evidence.sh` |
 | Daily run cap, kill switch | `avengers-12/lib/preflight.sh` and the job-level `if:` |
