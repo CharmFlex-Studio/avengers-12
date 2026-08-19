@@ -10,8 +10,8 @@ body:
         start a run on an issue that has no acceptance criteria, so the sections below are
         not paperwork — they are the agent's entire specification.
 
-        Scope is **`composeApp` and `backend/`** — each has its own gate step. `webview-sdk/` and `iosApp/`
-        are on the gate denylist and a run touching them will fail.
+        Scope is whatever a `verify` step in `avengers-12/config.yml` covers. Anything on that
+        file's `gate.deny` list is out of bounds, and a run touching it will fail.
 
   - type: textarea
     id: goal
@@ -44,7 +44,7 @@ body:
         Best guess is fine — it seeds the brief's in-scope list. If you genuinely don't know,
         say so and label this `loop:needs-spec` until triage has looked at it.
       placeholder: |
-        composeApp/src/commonMain/kotlin/.../feature/vocab/presentation/HomeScreen.kt
+        src/feature/vocab/HomeScreen.kt
     validations:
       required: true
 

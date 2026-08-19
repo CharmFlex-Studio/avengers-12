@@ -85,9 +85,18 @@ grep -q "# my edit" avengers-12/config.yml || fail "init --force destroyed confi
 say "the harness runs the scratch project's own build"
 bash avengers-12/lib/verify.sh >/dev/null 2>&1 || fail "verify.sh failed"
 
-say "no Gradle or iOS leaked out of the repository this came from"
-if grep -rnliE 'gradlew|composeApp|iosApp|webview-sdk' avengers-12/lib avengers-12/rules \
-     .github/workflows .claude 2>/dev/null; then
+say "nothing from the origin repository leaked into the install"
+# Everything init produced, not a hand-listed subset. The first version of this
+# check named four directories and missed .github/ISSUE_TEMPLATE, which was
+# carrying `composeApp` and `iosApp` straight into a stranger's repository.
+# A leak check with an allowlist of places to look is a leak check with holes.
+LEAKS="$(grep -rnliE 'gradlew|composeApp|iosApp|webview-sdk|androidUnitTest|korean' \
+  avengers-12 .github .claude 2>/dev/null \
+  | grep -v '^avengers-12/config\.yml$' || true)"
+if [[ -n "$LEAKS" ]]; then
+  printf '%s\n' "$LEAKS" >&2
+  grep -rniE 'gradlew|composeApp|iosApp|webview-sdk|androidUnitTest|korean' \
+    avengers-12 .github .claude 2>/dev/null | grep -v '^avengers-12/config\.yml:' >&2
   fail "a path from the origin repository survived the extraction"
 fi
 
