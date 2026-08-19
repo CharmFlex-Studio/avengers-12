@@ -94,17 +94,54 @@ board_ensure_item() {
   fi
 
   url="${GITHUB_SERVER_URL:-https://github.com}/${GITHUB_REPOSITORY:-}/issues/${issue}"
-  if gh project item-add "$BOARD_NUMBER" --owner "$BOARD_OWNER" --url "$url" >/dev/null 2>&1; then
-    log "board: added issue #$issue to project #$BOARD_NUMBER"
-  else
-    warn "board: could not add issue #$issue to project #$BOARD_NUMBER"
+
+  # Take the id straight from the add when gh gives it. That is the only way to
+  # get it without asking the API a second question -- see the retry below for
+  # why asking twice is not reliable.
+  local added
+  added="$(gh project item-add "$BOARD_NUMBER" --owner "$BOARD_OWNER" --url "$url" \
+            --format json 2>/dev/null || true)"
+  if [[ -z "$added" ]]; then
+    # Either the add failed, or this gh predates `--format json` on item-add.
+    # Those must not be confused: reporting "could not add" for a version
+    # difference would be a lie that hides a working board. Retry plainly and
+    # let the exit code decide.
+    if gh project item-add "$BOARD_NUMBER" --owner "$BOARD_OWNER" --url "$url" >/dev/null 2>&1; then
+      added="{}"
+    else
+      warn "board: could not add issue #$issue to project #$BOARD_NUMBER"
+      return 0
+    fi
+  fi
+  log "board: added issue #$issue to project #$BOARD_NUMBER"
+
+  item_id="$(jq -r '.id // empty' <<<"$added" 2>/dev/null || true)"
+  if [[ -n "$item_id" ]]; then
+    printf '%s\n' "$item_id"
     return 0
   fi
 
-  # item-add does not print the id in a stable shape across gh versions, so the
-  # id is re-read rather than parsed out of the add. The listing is not cached,
-  # so the item just added is visible.
-  board_item_id_for_issue "$issue"
+  # Older gh does not print the id, so it has to be read back -- and this is
+  # where a card silently fails to move. Projects v2 is GraphQL-backed and its
+  # item listing does NOT reflect an add immediately. One read used to be enough
+  # in testing and not enough in a real run: preflight added the card, asked for
+  # it, got nothing, and skipped the move. The card then sat in whatever lane it
+  # was in for the entire implement run, and the In Review move forty minutes
+  # later worked perfectly -- because by then the listing had caught up. That
+  # asymmetry is exactly what it looks like from the outside: "In Review works,
+  # In Progress never does."
+  local attempt
+  for attempt in 1 2 3 4 5; do
+    item_id="$(board_item_id_for_issue "$issue")" || true
+    if [[ -n "$item_id" ]]; then
+      [[ "$attempt" -gt 1 ]] && log "board: item for #$issue appeared after ${attempt} reads"
+      printf '%s\n' "$item_id"
+      return 0
+    fi
+    sleep "$attempt"
+  done
+
+  warn "board: issue #$issue was added to project #$BOARD_NUMBER but the item did not appear in time"
   return 0
 }
 

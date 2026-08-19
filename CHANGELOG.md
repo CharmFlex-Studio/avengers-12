@@ -25,6 +25,13 @@ Fixed:
 
 - `loop.yml` moved cards to a hardcoded `"In Review"` instead of
   `board.columns.inReview`. Renaming the column in config had no effect.
+- Cards reached In Review but never In Progress. `board_ensure_item` added the
+  card and then read the item list once to get its id, on the assumption that an
+  add is immediately visible. Projects v2 is GraphQL-backed and it is not, so the
+  read came back empty, the id was empty, and the move was skipped — while the
+  In Review move forty minutes later worked, because by then the listing had
+  caught up. The id now comes from `item-add --format json` where gh provides it,
+  and falls back to a bounded retry (5 reads, ~15s) otherwise.
 - A board that cannot move a card now says so on the run summary, as a warning
   annotation, instead of one `warn` inside a collapsed log group. Every board
   call is non-fatal by design; the cost was that "the card did not move" had no
