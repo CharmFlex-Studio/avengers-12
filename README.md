@@ -9,6 +9,27 @@ reporting, because it is the thing that stops anyone else reusing this.
 You start it, and you answer its questions. Everything between those two things is
 automatic.
 
+## Install
+
+```bash
+npx avengers-12 init      # copies the harness into this repository
+# edit avengers-12/config.yml
+npx avengers-12 doctor    # run it until it is quiet
+```
+
+Then read [`docs/setup.md`](docs/setup.md) for the parts a script cannot do for you:
+the GitHub App, the token, the labels, the board. Budget about twenty minutes.
+
+**Requirements:** Node 18+ to install. The harness itself runs on the GitHub runner and
+needs `bash`, `jq` and `python3`, all of which `ubuntu-latest` already has. Nothing is
+installed into your project — `init` copies files, and `node_modules` is not needed at
+run time.
+
+**Status: 0.1.0.** The logic is bash and python, not Node; npm is how it reaches your
+repository, not what runs it. It has been used in anger on one Gradle project and tested
+end to end on one Node project. Treat the config format as stable and everything else as
+early.
+
 ## Layout
 
 ```
