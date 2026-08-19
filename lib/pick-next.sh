@@ -91,8 +91,12 @@ why_not_eligible() {
   # escalate.sh strips loop:ready when it blocks, so "not ready" is a true but
   # useless thing to tell someone whose reply did not qualify as an answer.
   if [[ ",$labels," == *",loop:blocked,"* ]]; then
-    printf 'it is still `loop:blocked` — this comment is not newer than the last '
-    printf '`<!-- loop-escalation -->` on the issue, so it does not read as an answer to it'
+    # issue_answered fills ISSUE_ANSWER_DETAIL with the timestamps it compared.
+    # Without them this line reads the same whether the loop asked a new
+    # question, whether a reply was misfiled, or whether nobody replied at all —
+    # three situations needing three different responses from the reader.
+    issue_answered "$issue" >/dev/null 2>&1 || true
+    printf 'it is still `loop:blocked`. %s' "$ISSUE_ANSWER_DETAIL"
     return 0
   fi
   if [[ ",$labels," == *",loop:in-progress,"* ]]; then
