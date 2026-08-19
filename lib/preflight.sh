@@ -183,6 +183,11 @@ gh issue edit "$ISSUE" --add-label "$LOOP_LABEL_IN_PROGRESS" >/dev/null 2>&1 \
   || warn "could not add loop:in-progress to #$ISSUE"
 gh issue edit "$ISSUE" --remove-label "$LOOP_LABEL_BLOCKED" >/dev/null 2>&1 || true
 
+# Say what the board is doing before trying to use it, so "the card did not
+# move" is answered on the run summary rather than by reading a collapsed log
+# group. Cheap: one API call, already cached for the rest of the job.
+board_report_mode
+
 # Put the card on the board before moving it. The board is the source of truth,
 # and an issue the loop is actively working on must never be missing from it —
 # previously nothing added issues except a manual seed-board.sh run, so anything

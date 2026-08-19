@@ -149,6 +149,7 @@ endgroup() { printf '::endgroup::\n'; }
 # Surface a message on the run summary page, not just buried in the log.
 notice()  { printf '::notice::%s\n' "$*"; }
 problem() { printf '::error::%s\n' "$*"; }
+caution() { printf '::warning::%s\n' "$*"; }
 
 # --- guards -----------------------------------------------------------------
 

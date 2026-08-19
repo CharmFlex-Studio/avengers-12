@@ -108,6 +108,28 @@ board_ensure_item() {
   return 0
 }
 
+# board_report_mode
+#
+# Say, once per job and on the run summary, whether cards are going to move.
+#
+# This exists because of a specific afternoon: an owner watching a board, seeing
+# an issue picked up and labelled loop:in-progress, and no card moving. Every
+# board call is non-fatal by design, so the only trace was one `warn` inside a
+# collapsed log group. The loop knew perfectly well it had no board and never
+# said so anywhere the owner was looking.
+board_report_mode() {
+  if ! board_enabled; then
+    caution "Board: not configured — labels move, cards do not. Set the LOOP_PROJECT_NUMBER and LOOP_PROJECT_OWNER repository variables, or ignore this if you run on labels alone."
+    return 0
+  fi
+  if [[ -z "$(board_project_id)" ]]; then
+    caution "Board: #$BOARD_NUMBER for '$BOARD_OWNER' cannot be read — cards will not move. Check the PAT has Projects: Read and write, and that an org owner approved it."
+    return 0
+  fi
+  log "board: $BOARD_OWNER / project #$BOARD_NUMBER"
+  return 0
+}
+
 # board_set_status <issue-number> <status-name>
 # Always returns 0. Warns on any failure.
 board_set_status() {
@@ -123,15 +145,15 @@ board_set_status() {
   item_id="$(board_ensure_item "$issue")"         || true
 
   if [[ -z "$project_id" || -z "$field_id" ]]; then
-    warn "board: could not resolve project or '$BOARD_STATUS_FIELD' field — skipping"
+    caution "Board: cannot reach project #$BOARD_NUMBER or its '$BOARD_STATUS_FIELD' field — issue #$issue stays where it is."
     return 0
   fi
   if [[ -z "$option_id" ]]; then
-    warn "board: no '$BOARD_STATUS_FIELD' option named '$status' — skipping (check your board's column names)"
+    caution "Board: no '$BOARD_STATUS_FIELD' option named '$status' — issue #$issue stays where it is. Add that column, or rename it under board.columns in $AVENGERS_CONFIG."
     return 0
   fi
   if [[ -z "$item_id" ]]; then
-    warn "board: issue #$issue is not on project #$BOARD_NUMBER — skipping"
+    caution "Board: issue #$issue is not on project #$BOARD_NUMBER and could not be added — it stays where it is."
     return 0
   fi
 
@@ -142,7 +164,7 @@ board_set_status() {
       --single-select-option-id "$option_id" >/dev/null 2>&1; then
     log "board: issue #$issue → $status"
   else
-    warn "board: failed to move issue #$issue to '$status'"
+    caution "Board: failed to move issue #$issue to '$status'. The token needs Projects: Read and write on '$BOARD_OWNER'."
   fi
   return 0
 }

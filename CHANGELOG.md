@@ -25,6 +25,11 @@ Fixed:
 
 - `loop.yml` moved cards to a hardcoded `"In Review"` instead of
   `board.columns.inReview`. Renaming the column in config had no effect.
+- A board that cannot move a card now says so on the run summary, as a warning
+  annotation, instead of one `warn` inside a collapsed log group. Every board
+  call is non-fatal by design; the cost was that "the card did not move" had no
+  visible cause. `preflight` also states the board mode before it claims, so a
+  run with no board configured says that in one line.
 
 ## 0.1.0 — 2026-08-19
 
