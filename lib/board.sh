@@ -169,8 +169,16 @@ board_report_mode() {
 
 # board_set_status <issue-number> <status-name>
 # Always returns 0. Warns on any failure.
+# Set by board_set_status: true only when the card actually moved. It stays
+# false on every refusal path, which is most of them. The function itself always
+# returns 0 -- a broken board must not fail a run -- so this is the only way a
+# caller can tell "moved" from "declined to move", and a caller that counts
+# without checking it reports work that did not happen.
+BOARD_LAST_MOVE_OK=false
+
 board_set_status() {
   local issue="$1" status="$2"
+  BOARD_LAST_MOVE_OK=false
   _board_require || return 0
 
   local project_id field_id option_id item_id
@@ -200,6 +208,7 @@ board_set_status() {
       --field-id "$field_id" \
       --single-select-option-id "$option_id" >/dev/null 2>&1; then
     log "board: issue #$issue → $status"
+    BOARD_LAST_MOVE_OK=true
   else
     caution "Board: failed to move issue #$issue to '$status'. The token needs Projects: Read and write on '$BOARD_OWNER'."
   fi

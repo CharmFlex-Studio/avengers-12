@@ -98,6 +98,7 @@ if ! gh issue list --state open --limit 200 --json number,labels > "$ISSUES" 2>/
 fi
 
 MOVED=0
+FAILED=0
 CHECKED=0
 group "board: reconciling card lanes with labels"
 
@@ -133,20 +134,31 @@ while IFS=$'\t' read -r NUMBER LABELS_CSV <&3; do
 
   if [[ "$DRY_RUN" == true ]]; then
     notice "board (dry run): #$NUMBER would move '${HAVE:-<none>}' → '$WANT'"
+    MOVED=$((MOVED + 1))
   else
     log "board: #$NUMBER '${HAVE:-<none>}' → '$WANT' (labels say so)"
     board_set_status "$NUMBER" "$WANT"
+    # Count the move, not the attempt. This used to increment either way, so a
+    # run where every single write was refused still finished with
+    # "moved 4 of 5" -- a summary that contradicted the four warnings above it.
+    if [[ "$BOARD_LAST_MOVE_OK" == true ]]; then
+      MOVED=$((MOVED + 1))
+    else
+      FAILED=$((FAILED + 1))
+    fi
   fi
-  MOVED=$((MOVED + 1))
 done 3< <(
   jq -r '.[] | [(.number|tostring), ([.labels[].name] | join(","))] | @tsv' "$ISSUES" 2>/dev/null || true
 )
 
 endgroup
 
-if [[ "$MOVED" -eq 0 ]]; then
+if [[ "$FAILED" -gt 0 ]]; then
+  caution "Board: $FAILED of $CHECKED card(s) could not be moved. The labels are right; the board is behind them. See the warnings above — every one of them names its own cause."
+fi
+if [[ "$MOVED" -eq 0 && "$FAILED" -eq 0 ]]; then
   log "board: $CHECKED labelled issue(s) checked, every card already agreed"
-else
+elif [[ "$MOVED" -gt 0 ]]; then
   notice "board: moved $MOVED of $CHECKED labelled issue(s) into the lane their labels imply"
 fi
 exit 0

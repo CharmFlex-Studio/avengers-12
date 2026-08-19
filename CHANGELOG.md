@@ -2,6 +2,12 @@
 
 ## 0.2.2 — 2026-08-19
 
+- Fixed: `sync-board.sh` reported "moved 4 of 5" in a run where every write was
+  refused. It counted attempts, because `board_set_status` always returns 0 by
+  design — a broken board must not fail a run — so a caller had no way to tell a
+  move from a refusal. It now publishes `BOARD_LAST_MOVE_OK`, the counter reads
+  it, and a run with failures says so instead of contradicting its own warnings.
+
 - The board setup shipped a default that does not match GitHub's. `board.columns`
   names five lanes; a new GitHub Project has three. `In Review` and `Blocked` had
   to be added by hand, the docs said so in prose halfway down a long section, and
