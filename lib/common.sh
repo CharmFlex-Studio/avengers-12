@@ -15,6 +15,12 @@ set -euo pipefail
 AVENGERS_HOME="${AVENGERS_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 AVENGERS_CONFIG="${AVENGERS_CONFIG:-$AVENGERS_HOME/config.yml}"
 
+# The harness shells out to python constantly. Left alone, that litters a
+# consumer's repository with avengers-12/lib/__pycache__/ — inside a directory
+# the gate denies, so it is noise they cannot even clean up through the loop.
+# The scripts are small; the cache buys nothing.
+export PYTHONDONTWRITEBYTECODE=1
+
 LOOP_DIR="${LOOP_DIR:-.loop}"
 LOOP_EVIDENCE_DIR="$LOOP_DIR/evidence"
 LOOP_ATTEMPTS_FILE="$LOOP_DIR/attempts.json"
