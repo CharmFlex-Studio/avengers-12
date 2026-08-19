@@ -1,7 +1,7 @@
 {
   "name": "avengers-12",
   "version": "0.1.0",
-  "description": "An autonomous GitHub issue loop for Claude Code: triage a queue, implement one issue, gate the diff, open a draft PR — all driven by one config file.",
+  "description": "An autonomous GitHub issue loop for Claude Code: triage a queue, implement one issue, gate the diff, open a draft PR \u2014 all driven by one config file.",
   "keywords": [
     "claude",
     "claude-code",
@@ -32,7 +32,10 @@
     "docs",
     "templates",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "!**/__pycache__",
+    "!**/*.pyc",
+    "!**/.DS_Store"
   ],
   "engines": {
     "node": ">=18"
