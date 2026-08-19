@@ -2,6 +2,11 @@
 
 ## 0.2.2 — 2026-08-19
 
+- Fixed: `sync-board.sh` read its issue list on stdin while shelling out to `gh`
+  on every iteration. Anything inside that reads stdin swallows the rest of the
+  queue, so the loop would reconcile the first issue and stop — silently, looking
+  exactly like a board that only sometimes updates. It reads on fd 3 now.
+
 - Fixed: `doctor`'s board check reported a working board as unreadable. The
   Doctor step in `loop.yml` had no `GH_TOKEN`, so `gh project view` ran with no
   credential and failed the same way a broken board does. It now has the token.

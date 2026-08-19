@@ -101,7 +101,11 @@ MOVED=0
 CHECKED=0
 group "board: reconciling card lanes with labels"
 
-while IFS=$'\t' read -r NUMBER LABELS_CSV; do
+# Read on fd 3, not stdin. Every iteration shells out to `gh`, which inherits
+# stdin — and anything that reads it swallows the rest of the queue. The loop
+# would then process the first issue and stop, silently, looking exactly like a
+# board that only sometimes updates.
+while IFS=$'\t' read -r NUMBER LABELS_CSV <&3; do
   [[ -n "$NUMBER" ]] || continue
 
   LABELS="$(printf '%s' "$LABELS_CSV" | tr ',' '\n')"
@@ -134,7 +138,7 @@ while IFS=$'\t' read -r NUMBER LABELS_CSV; do
     board_set_status "$NUMBER" "$WANT"
   fi
   MOVED=$((MOVED + 1))
-done < <(
+done 3< <(
   jq -r '.[] | [(.number|tostring), ([.labels[].name] | join(","))] | @tsv' "$ISSUES" 2>/dev/null || true
 )
 
