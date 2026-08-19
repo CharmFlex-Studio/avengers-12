@@ -2,6 +2,13 @@
 
 ## 0.2.2 — 2026-08-19
 
+- The advisory reviewer is a config key, `review.agent`, instead of
+  `kotlin-reviewer` written into the implement skill. Every project in another
+  language either got a review from an agent that did not understand its code,
+  or silently got none — and the skill's own fallback said only "reviewer
+  unavailable", which reads like a temporary glitch rather than "this stage does
+  not apply to you". Empty means skip, and that is a supported choice.
+
 - Fixed: an issue blocked by **triage** could never be resumed by replying. Two
   things set `loop:blocked` — `escalate.sh`, which posts an escalation comment,
   and triage, which sets the label from a verdict because a model is not allowed

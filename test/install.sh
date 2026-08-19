@@ -85,6 +85,18 @@ echo "# my edit" >> avengers-12/config.yml
 "$CLI" init --force >/dev/null || fail "second init failed"
 grep -q "# my edit" avengers-12/config.yml || fail "init --force destroyed config.yml"
 
+say "no language's tooling is hardcoded as a default"
+# The leak this catches: `Spawn kotlin-reviewer` sat in the implement skill, so
+# every project in every other language either got a review from an agent that
+# did not understand its code, or silently got none. The reviewer is a config
+# key now, and the only file allowed to name one is the consumer's own config.
+HARDCODED="$(grep -rnoiE '(kotlin|python|golang|go|swift|rust|java|ruby|php)-reviewer' \
+  avengers-12/lib avengers-12/rules .claude .github 2>/dev/null || true)"
+if [[ -n "$HARDCODED" ]]; then
+  printf '%s\n' "$HARDCODED" >&2
+  fail "a language-specific agent is named outside config.yml"
+fi
+
 say "the setup scripts run and produce JSON"
 avengers-12/lib/detect-project.sh | jq -e '.isGitRepo == true' >/dev/null \
   || fail "detect-project.sh did not report a git repository"

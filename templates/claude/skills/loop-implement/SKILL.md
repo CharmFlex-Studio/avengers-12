@@ -222,14 +222,23 @@ Then go back to EVIDENCE.
 
 ### REVIEW
 
-APPROVE only. Spawn `kotlin-reviewer` (or `everything-claude-code:kotlin-reviewer`) against
-the diff, and save its notes to `.loop/review.md`.
+APPROVE only. Read `review.agent` from `avengers-12/config.yml`.
+
+- **Empty or absent** — skip this stage. Write "no reviewer configured" into
+  `.loop/review.md` and move on. This is a supported choice, not a failure.
+- **Set** — spawn that subagent against the diff and save its notes to `.loop/review.md`.
+
+Do not substitute a reviewer of your own choosing. This used to name one language's
+reviewer outright, which meant every project in a different language either got a review
+from an agent that did not understand its code, or none at all with no explanation.
 
 **Advisory. Non-blocking.** A reviewer complaint never sends you back to REMEDIATE and never
 changes the verdict. Quality opinions must not hold a correct patch hostage.
 
-If the reviewer agent is unavailable, write "reviewer unavailable" into `.loop/review.md`
-and carry on. This stage is never a reason to fail a run.
+If the named agent is unavailable, write "reviewer unavailable: <name>" into
+`.loop/review.md` and carry on. Name it, so the owner can tell "not configured" from
+"configured and missing" — those need different fixes. This stage is never a reason to
+fail a run.
 
 ### PACKAGE
 

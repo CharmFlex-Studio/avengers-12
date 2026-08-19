@@ -115,6 +115,20 @@ permissions:
     - ".git/config"
     - "**/.git/**"
 
+# --- advisory review --------------------------------------------------------
+# After the verifier approves, a second agent may read the diff and leave quality
+# notes. Purely advisory: its opinion never blocks a run, never changes a verdict
+# and never sends the coder back to fix anything. A correct patch is not held
+# hostage to taste.
+#
+# Name a Claude Code subagent that suits YOUR language. Leave it empty to skip
+# the stage entirely — that is a supported choice, not a degraded one.
+#
+#   kotlin-reviewer · python-reviewer · go-reviewer
+#   everything-claude-code:<name> for the plugin versions
+review:
+  agent: ""
+
 # --- house rules ------------------------------------------------------------
 # Project documents every agent must read before editing. They hold the standing
 # rules of your codebase and they are the only place those rules are written
