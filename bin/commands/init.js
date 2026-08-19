@@ -23,13 +23,17 @@ const DIRECTORIES = [
   ["templates/ISSUE_TEMPLATE", ".github/ISSUE_TEMPLATE"],
 ];
 
-// Written once and then owned by you. Never overwritten, --force or not.
-const YOURS = [["templates/config.yml", "avengers-12/config.yml"]];
-
-// Created empty so the first run has somewhere to write.
-const STATE_FILES = [
-  ["avengers-12/state/STATE.md", "# Loop State\n\nNo run yet.\n"],
-  ["avengers-12/state/run-log.md", "# Loop Run Log\n\n"],
+// Written once and then owned by the repository. Never overwritten, --force or
+// not: config.yml is yours the moment you edit it, and the two state files are
+// written by the loop itself from the first run onwards. Replacing either would
+// destroy something no copy of this package can reproduce.
+//
+// Every one of these is a real file in templates/, not a string in this code.
+// A default you cannot open and read is a default nobody reviews.
+const COPY_ONCE = [
+  ["templates/config.yml", "avengers-12/config.yml"],
+  ["templates/state/STATE.md", "avengers-12/state/STATE.md"],
+  ["templates/state/run-log.md", "avengers-12/state/run-log.md"],
 ];
 
 function walk(dir, base = "") {
@@ -75,21 +79,8 @@ function run({ packageRoot, targetRoot, force, dryRun }) {
     }
   }
 
-  for (const [fromRel, toRel] of YOURS) {
+  for (const [fromRel, toRel] of COPY_ONCE) {
     place(path.join(packageRoot, fromRel), toRel, { protectedFile: true });
-  }
-
-  for (const [toRel, body] of STATE_FILES) {
-    const toAbs = path.join(targetRoot, toRel);
-    if (fs.existsSync(toAbs)) {
-      report.skipped.push(toRel);
-      continue;
-    }
-    if (!dryRun) {
-      fs.mkdirSync(path.dirname(toAbs), { recursive: true });
-      fs.writeFileSync(toAbs, body);
-    }
-    report.created.push(toRel);
   }
 
   print(report, { dryRun, force });
@@ -114,7 +105,8 @@ function print(report, { dryRun, force }) {
   if (report.skipped.length && !force) {
     out.push(
       "Files that already existed were left alone. Pass --force to replace them.",
-      "avengers-12/config.yml is never replaced — it is yours once you edit it.",
+      "config.yml and state/ are never replaced, --force or not: one is yours once",
+      "you edit it, the other two are written by the loop and cannot be regenerated.",
       ""
     );
   }
