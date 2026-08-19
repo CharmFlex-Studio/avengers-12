@@ -1,0 +1,109 @@
+name: Loop Board
+
+# Close the loop on the board.
+#
+# Every other status transition already happens in bash — preflight moves a card
+# to In Progress, the PR step to In Review, escalate to Blocked — but nothing
+# ever set **Done**, because nothing in the implement run is still alive when the
+# pull request is finally merged. So the last column on the board was permanently
+# empty and the owner had to move cards by hand, which is the one thing the board
+# being the source of truth is supposed to remove.
+#
+# The issue number comes from the BRANCH NAME, not from parsing the PR body for
+# "Closes #N". A loop branch is always `<branch.prefix><N>` (default
+# `loop/issue-<N>`), created by preflight.sh, so this is a fact the harness
+# itself wrote — whereas the body is model output and can be edited by anyone
+# with write access to the PR.
+#
+# Nothing here can fail a merge: the workflow runs after the fact and every
+# board call is non-fatal by design.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  board:
+    name: Update the board
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Loop branches only. A human's pull request has nothing to do with the
+    # loop's queue and must not have its labels rewritten.
+    #
+    # This prefix is the ONE value in the harness that cannot come from
+    # config.yml. A job-level `if:` is evaluated before any step runs, so
+    # nothing has read the config yet — GitHub expressions see contexts, inputs
+    # and step outputs, and never a file. Change `branch.prefix` in config.yml
+    # and you must change this line with it. `avengers-12/lib/doctor.sh` compares
+    # the two and fails when they disagree, so it is checkable rather than
+    # remembered.
+    if: startsWith(github.event.pull_request.head.ref, 'loop/issue-')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          # Read-only job. Nothing here uses git over the network, so no
+          # credential is persisted into .git/config.
+          persist-credentials: false
+
+      - name: Set the card status
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          LOOP_PROJECT_NUMBER: ${{ vars.LOOP_PROJECT_NUMBER }}
+          LOOP_PROJECT_OWNER: ${{ vars.LOOP_PROJECT_OWNER }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          MERGED: ${{ github.event.pull_request.merged }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          set -euo pipefail
+          source avengers-12/lib/common.sh
+          source avengers-12/lib/board.sh
+
+          # The prefix comes from config, so a project that renames its branches
+          # does not have to edit this file. The job-level `if:` below still
+          # carries the literal, because a workflow expression cannot read a
+          # file — see the comment there.
+          ISSUE="${HEAD_REF#"$LOOP_BRANCH_PREFIX"}"
+          if ! [[ "$ISSUE" =~ ^[0-9]+$ ]]; then
+            warn "branch '$HEAD_REF' does not end in an issue number — nothing to do"
+            exit 0
+          fi
+
+          if [[ "$MERGED" == "true" ]]; then
+            # Merged. `Closes #N` in the PR body closes the issue itself; this
+            # only has to make the board agree, and clear the review label so a
+            # closed issue is not still advertising work in flight.
+            board_set_status "$ISSUE" "$LOOP_COL_DONE"
+            gh issue edit "$ISSUE" \
+              --remove-label "$LOOP_LABEL_IN_REVIEW" \
+              --remove-label "$LOOP_LABEL_READY" \
+              --remove-label "$LOOP_LABEL_IN_PROGRESS" >/dev/null 2>&1 || true
+            notice "Loop: #$ISSUE merged — card moved to $LOOP_COL_DONE"
+            exit 0
+          fi
+
+          # Closed without merging. Somebody looked at the work and rejected it,
+          # which is a decision, not a failure — so the card goes back to Todo
+          # and the issue drops out of the queue rather than being picked up and
+          # redone on the next run.
+          board_set_status "$ISSUE" "$LOOP_COL_TODO"
+          gh issue edit "$ISSUE" --remove-label "$LOOP_LABEL_IN_REVIEW" >/dev/null 2>&1 || true
+
+          NOTE="$(mktemp)"
+          {
+            printf '## Loop: the draft PR was closed without merging\n\n'
+            printf 'Its branch `%s` still exists and still holds the work: %s\n\n' "$HEAD_REF" "$PR_URL"
+            printf 'This issue is now **out of the queue** — the loop will not pick it up again\n'
+            printf 'on its own, because a human decided against that attempt.\n\n'
+            printf 'To have another go: say what should change in a comment and label the issue\n'
+            printf '`loop:ready`. To start from scratch, delete the branch first:\n'
+            printf '`git push origin --delete %s`\n' "$HEAD_REF"
+          } > "$NOTE"
+          loop_comment "$ISSUE" "$NOTE"
+          notice "Loop: #$ISSUE — draft PR closed unmerged, card back in Todo"

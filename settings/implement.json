@@ -1,0 +1,46 @@
+{
+  "$comment": [
+    "BASE permissions for an avengers-12 implement run. Not used directly:",
+    "avengers-12/lib/emit-settings.sh merges this with config.yml and writes",
+    ".loop/settings-implement.json, which is what the workflow passes to",
+    "anthropics/claude-code-action.",
+    "",
+    "Everything here is about the HARNESS, not about your project, which is why",
+    "it is the same for everyone and lives in a file you do not edit:",
+    "  1. Publishing   - the agent commits locally; bash decides what gets pushed",
+    "  2. Network      - no curl, no wget, no gh",
+    "  3. The safe allow list - read-only git, plus the evidence script",
+    "",
+    "Everything project-specific is DERIVED from config.yml instead:",
+    "  Write(p) and Edit(p)  for every path in gate.deny",
+    "  Read(p)               for every path in permissions.denyRead",
+    "  Bash(c)               for every command in permissions.allowBash",
+    "",
+    "Those used to be typed in here by hand, mirroring gate.deny, with a comment",
+    "asking you to remember to keep the two in step. One list cannot drift from",
+    "itself, so now there is one list.",
+    "",
+    "These rules are prefix matches, so treat them as defence in depth, never as",
+    "the only line. `git -C . push` does not match `Bash(git push:*)`. The real",
+    "enforcement is avengers-12/lib/check-gate.sh, which inspects the diff after",
+    "the agent has finished and before anything is pushed."
+  ],
+  "permissions": {
+    "deny": [
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "Bash(gh:*)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    ],
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(avengers-12/lib/evidence.sh:*)"
+    ]
+  }
+}

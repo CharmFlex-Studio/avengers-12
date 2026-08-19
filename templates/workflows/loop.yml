@@ -1,0 +1,519 @@
+name: Loop
+
+# One button, plus one reply. Triage the queue, pick the next ready issue,
+# implement it, open a draft PR — and when a run gets stuck and asks a question,
+# resume the same work the moment the owner answers it.
+#
+# Two jobs rather than one, because they have genuinely different risk profiles:
+# `triage` is read-only and cheap, `implement` writes code and costs real time.
+# Splitting them means the implement job simply never starts when the queue is
+# empty, and you can still run triage alone.
+#
+# The load-bearing rule is unchanged: the model proposes, bash disposes. Claude
+# commits locally and holds no GitHub credential; the gate, the build, and the
+# push are workflow steps that run after it exits. Nothing below asks a model to
+# decide something a script could check.
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue to implement (blank = pick the next loop:ready issue automatically)"
+        required: false
+        default: ""
+        type: string
+      mode:
+        description: "full = triage then implement · triage-only = rank the queue and stop"
+        required: false
+        default: full
+        type: choice
+        options: [full, triage-only]
+      base_branch:
+        description: "Base branch (blank = the branch selected above)"
+        required: false
+        default: ""
+        type: string
+      model:
+        description: "Model for the implement job (triage is fixed at sonnet)"
+        required: false
+        default: claude-opus-5
+        type: choice
+        options: [claude-opus-5, claude-sonnet-5]
+      effort:
+        description: "Reasoning effort for the implement job (triage is fixed at medium)"
+        required: false
+        default: high
+        type: choice
+        options: [low, medium, high, xhigh, max]
+
+  # The resume trigger. A blocked run asks a question on the issue; the owner
+  # replies; this fires and the same work carries on. Without it the reply is
+  # never seen and somebody has to press Run — which is the one thing this
+  # harness exists to avoid.
+  #
+  # GitHub reads this file from the DEFAULT BRANCH for issue_comment events, so
+  # the resume path only works once the harness is merged to main. That merge is
+  # already required for the dispatch buttons to appear at all.
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: loop
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  actions: read
+  id-token: write
+
+env:
+  LOOP_PROJECT_NUMBER: ${{ vars.LOOP_PROJECT_NUMBER }}
+  LOOP_PROJECT_OWNER: ${{ vars.LOOP_PROJECT_OWNER }}
+  # These two carry NO `|| default` on purpose. A repository variable that is not
+  # set comes through as an empty string, which every script treats as "not set"
+  # and falls back to avengers-12/config.yml for. Writing a default here instead
+  # made the env var always non-empty, so the config value was never read and
+  # `budget.maxRunsPerDay` and `board.optional` silently did nothing. A repo
+  # variable is the override; config.yml is the default.
+  LOOP_BOARD_OPTIONAL: ${{ vars.LOOP_BOARD_OPTIONAL }}
+  LOOP_PAUSE_ALL: ${{ vars.LOOP_PAUSE_ALL }}
+  LOOP_NOTIFY_USER: ${{ github.repository_owner }}
+  LOOP_MAX_RUNS_PER_DAY: ${{ vars.LOOP_MAX_RUNS_PER_DAY }}
+  # LOOP_BASE_BRANCH is deliberately NOT set here. Each job resolves it in a
+  # step and writes it to $GITHUB_ENV, because the resume path has to adopt the
+  # base branch recorded on the existing loop branch — and a workflow-level env
+  # entry competing with $GITHUB_ENV for the same name is exactly the sort of
+  # precedence question nobody should have to answer while debugging a run.
+
+jobs:
+  # ---------------------------------------------------------------- triage ---
+  triage:
+    name: Rank the queue and pick
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # workflow_dispatch always runs. An issue comment runs only when every one
+    # of these is true, and each is a fact rather than a judgement:
+    #   - it is an issue, not a pull request (PR review chat is claude.yml's job)
+    #   - the issue is actually blocked, so this is a reply to a question
+    #   - the commenter can write to this repository
+    #   - the comment is not one the loop wrote itself. escalations and verdicts
+    #     are posted with the PAT, i.e. as the owner, so author_association
+    #     cannot tell them apart from a human reply — the markers can, and every
+    #     comment the harness posts carries one.
+    #   - the comment does not say @claude. That phrase is addressed to
+    #     .github/workflows/claude.yml, which fires on the same event; running
+    #     both would put two agents on one issue at the same time.
+    if: >-
+      vars.LOOP_PAUSE_ALL != 'true'
+      && (
+        github.event_name == 'workflow_dispatch'
+        || (
+          github.event_name == 'issue_comment'
+          && github.event.issue.pull_request == null
+          && contains(github.event.issue.labels.*.name, 'loop:blocked')
+          && (
+            github.event.comment.author_association == 'OWNER'
+            || github.event.comment.author_association == 'MEMBER'
+            || github.event.comment.author_association == 'COLLABORATOR'
+          )
+          && !contains(github.event.comment.body, '<!-- loop-escalation -->')
+          && !contains(github.event.comment.body, '<!-- loop-triage-verdict -->')
+          && !contains(github.event.comment.body, '<!-- loop-notice -->')
+          && !contains(github.event.comment.body, '@claude')
+        )
+      )
+    outputs:
+      issue: ${{ steps.pick.outputs.issue }}
+      title: ${{ steps.pick.outputs.title }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch || github.ref_name }}
+          fetch-depth: 50
+          token: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          # Same rule as the implement job, and for a sharper reason: this job
+          # runs a model with bare Bash over issue text that anybody can write.
+          # Without this the PAT is written into .git/config, in reach of a
+          # prompt injection. Nothing here uses git over the network — `gh`
+          # carries GH_TOKEN separately, per step.
+          persist-credentials: false
+
+      # Dispatch inputs reach the shell through `env:`, never through `${{ }}`
+      # inside a run body: an input is attacker-controlled text and direct
+      # interpolation would splice it into the script.
+      - name: Resolve the base branch
+        env:
+          BASE_INPUT: ${{ inputs.base_branch }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          BASE="${BASE_INPUT:-$REF_NAME}"
+          echo "LOOP_BASE_BRANCH=$BASE" >> "$GITHUB_ENV"
+          echo "::notice::Base branch: $BASE"
+
+      # Everything project-specific comes out of avengers-12/config.yml. A
+      # workflow expression cannot read a file, so a step reads it and publishes
+      # the values as outputs for the steps below. This is the only place the
+      # workflow learns anything about the project it is running in.
+      - name: Read config
+        id: cfg
+        run: avengers-12/lib/emit-config.sh
+
+      # Runs BEFORE credentials, because it needs no network and costs seconds.
+      # Every failure this catches is a disagreement between two files that were
+      # supposed to say the same thing -- a config key nothing reads, a denylist
+      # the write permissions do not mirror, a house-rules document the agents
+      # are told to read that is not there. Each one used to surface as a
+      # confusing run forty minutes later, or not at all.
+      #
+      # It fails the job on purpose. An incoherent harness should refuse to
+      # start, the same way the gate refuses a bad diff.
+      - name: Doctor — the harness agrees with itself
+        run: avengers-12/lib/doctor.sh
+
+      - name: Check credentials
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          EXPLICIT: ${{ inputs.issue_number }}
+        # --require-board only on the automatic path. A targeted run — the owner
+        # naming an issue, or answering a question on one — must not be stopped
+        # by a board misconfiguration it does not depend on.
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ -z "${EXPLICIT:-}" ]; then
+            avengers-12/lib/check-auth.sh --require-board
+          else
+            avengers-12/lib/check-auth.sh
+          fi
+
+      # Skipped when the issue is already decided — no point ranking a queue
+      # whose answer you have already given, and a reply on a blocked issue is
+      # as explicit an instruction as the dispatch form.
+      - name: Triage
+        if: github.event_name == 'workflow_dispatch' && inputs.issue_number == ''
+        uses: anthropics/claude-code-action@v1
+        # Triage RANKS; it does not decide. The picker below is deterministic
+        # bash and does not need this to have succeeded, so a triage hiccup must
+        # not fail the job — when it did, `needs: triage` skipped the implement
+        # job, the run went green, and nothing happened all day.
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          LOOP_PROJECT_NUMBER: ${{ vars.LOOP_PROJECT_NUMBER }}
+          LOOP_PROJECT_OWNER: ${{ vars.LOOP_PROJECT_OWNER }}
+          LOOP_BOARD_OPTIONAL: ${{ vars.LOOP_BOARD_OPTIONAL }}
+          # Fingerprint of the files that define a verdict. Computed by the
+          # runner, not the model, so "did the rules change?" is a byte
+          # comparison rather than a judgement call. When this differs from the
+          # value recorded in avengers-12/state/STATE.md, every verdict is stale by definition.
+          #
+          # It covers everything that changes what READY means: the triage
+          # skill's own tests, the gate, the binding constraints, and the
+          # implement contract a READY verdict is a bet on.
+          LOOP_RULES_FINGERPRINT: ${{ hashFiles('.claude/skills/loop-triage/SKILL.md', '.claude/skills/loop-implement/SKILL.md', 'avengers-12/rules/constraints.md', 'avengers-12/config.yml') }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          settings: avengers-12/settings/triage.json
+          prompt: "/loop-triage"
+          # Fixed at medium: triage ranks and labels, it does not reason hard,
+          # and it runs on every invocation of this workflow.
+          claude_args: >-
+            --model ${{ steps.cfg.outputs.triage_model }}
+            --effort ${{ steps.cfg.outputs.triage_effort }}
+            --max-turns ${{ steps.cfg.outputs.triage_max_turns }}
+            --allowedTools "Bash,Read,Grep,Glob,Edit,Write"
+
+      - name: Save avengers-12/state/STATE.md
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.issue_number == ''
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+        run: |
+          set -uo pipefail
+          source avengers-12/lib/common.sh
+          if [ -z "$(git status --porcelain -- avengers-12/state/STATE.md)" ]; then
+            echo "avengers-12/state/STATE.md unchanged"; exit 0
+          fi
+          if gh_put_file "avengers-12/state/STATE.md" "avengers-12/state/STATE.md" \
+               "chore: loop triage state $(date -u +%Y-%m-%dT%H:%MZ)" "$LOOP_BASE_BRANCH"; then
+            echo "::notice::avengers-12/state/STATE.md updated on ${LOOP_BASE_BRANCH}"
+          else
+            echo "::warning::could not write avengers-12/state/STATE.md — the Loop Queue issue still has the queue"
+          fi
+
+      # Deterministic, and not the model's call. Triage ranks; this decides.
+      #
+      # always(), so a failure anywhere above cannot silently cancel the only
+      # step that produces work. It also does the housekeeping no model should
+      # own: releasing claims behind dead runs, and putting answered issues back
+      # in the queue.
+      - name: Pick next issue
+        id: pick
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          EXPLICIT: ${{ inputs.issue_number }}
+          COMMENT_ISSUE: ${{ github.event_name == 'issue_comment' && github.event.issue.number || '' }}
+        run: |
+          set -euo pipefail
+          if [ -n "$COMMENT_ISSUE" ]; then
+            avengers-12/lib/pick-next.sh --resume "$COMMENT_ISSUE"
+          elif [ -n "$EXPLICIT" ]; then
+            avengers-12/lib/pick-next.sh --issue "$EXPLICIT"
+          else
+            avengers-12/lib/pick-next.sh
+          fi
+
+  # ------------------------------------------------------------- implement ---
+  implement:
+    name: "Implement #${{ needs.triage.outputs.issue }}"
+    needs: triage
+    if: needs.triage.outputs.issue != '' && inputs.mode != 'triage-only'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      ISSUE: ${{ needs.triage.outputs.issue }}
+      LOOP_PATTERN: implement
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.base_branch || github.ref_name }}
+          fetch-depth: 0
+          token: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          # No credential left in .git/config: the agent must not be able to
+          # push by any spelling. The push step supplies it explicitly.
+          persist-credentials: false
+
+      # An issue_comment resume arrives on the default branch, because that is
+      # where GitHub reads the workflow from — but the work may well have been
+      # based on a feature branch, which is the norm in this repository. Adopt
+      # the base recorded on the existing loop branch, so answering a question
+      # resumes the work where it actually lives instead of re-basing it onto
+      # main. An explicit base_branch input always wins.
+      - name: Resolve the base branch
+        env:
+          BASE_INPUT: ${{ inputs.base_branch }}
+          REF_NAME: ${{ github.ref_name }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          BASE="${BASE_INPUT:-$REF_NAME}"
+          if [ "$EVENT_NAME" = "issue_comment" ] && [ -z "${BASE_INPUT:-}" ]; then
+            RECORDED="$(bash avengers-12/lib/recorded-base.sh read "origin/loop/issue-${ISSUE}" "$ISSUE" || true)"
+            if [ -n "$RECORDED" ] && git rev-parse --verify "origin/$RECORDED" >/dev/null 2>&1; then
+              BASE="$RECORDED"
+              echo "::notice::Resuming #${ISSUE} on its recorded base branch '$RECORDED'"
+            elif [ -n "$RECORDED" ]; then
+              echo "::warning::#${ISSUE} records base '$RECORDED', which no longer exists — falling back to $BASE"
+            fi
+          fi
+          echo "LOOP_BASE_BRANCH=$BASE" >> "$GITHUB_ENV"
+          echo "::notice::Base branch: $BASE"
+
+      - name: Read config
+        id: cfg
+        run: avengers-12/lib/emit-config.sh
+
+      # Skipped entirely when runtime.java is unset, so a project with no JVM
+      # pays nothing for this step.
+      - name: Set up JDK
+        if: steps.cfg.outputs.java != ''
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ steps.cfg.outputs.java }}
+          distribution: ${{ steps.cfg.outputs.java_distribution }}
+
+      - name: Cache build dependencies
+        if: steps.cfg.outputs.cache_paths != ''
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.cfg.outputs.cache_paths }}
+          # The digest comes from avengers-12/config.yml's runtime.cacheKeyFiles,
+          # computed by cache_key.py. hashFiles() cannot be used: its globs must
+          # be literals in this file, and a literal here is what config.yml is
+          # meant to replace.
+          key: ${{ runner.os }}-avengers-${{ steps.cfg.outputs.cache_key }}
+          restore-keys: ${{ runner.os }}-avengers-
+
+      - name: Make wrappers executable
+        if: steps.cfg.outputs.chmod_paths != ''
+        env:
+          CHMOD_PATHS: ${{ steps.cfg.outputs.chmod_paths }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$CHMOD_PATHS" | while read -r target; do
+            [ -n "$target" ] || continue
+            [ -e "$target" ] && chmod +x "$target" && echo "chmod +x $target"
+          done
+
+      # The Write/Edit denies are derived from gate.deny, not typed twice. See
+      # avengers-12/lib/emit-settings.sh.
+      - name: Build the agent's permission rules
+        id: settings
+        run: avengers-12/lib/emit-settings.sh
+
+      - name: Preflight
+        id: preflight
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+        run: avengers-12/lib/preflight.sh "$ISSUE"
+
+      # No GH_TOKEN here, deliberately. Everything the agent needs about the
+      # issue was written to .loop/evidence/issue.md by preflight, and any reply
+      # the owner has since written to .loop/answer.md.
+      - name: Implement
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          settings: ${{ steps.settings.outputs.settings_file }}
+          prompt: "/loop-implement ${{ needs.triage.outputs.issue }}"
+          # Opus 5 at `high` by default. `xhigh` is the documented starting point
+          # for coding and agentic work, but sweep from here: low and medium
+          # are unusually strong on this model, and a default carried over from
+          # an earlier one rarely transfers. Note that a local ~/.claude
+          # effortLevel does NOT reach the runner, so it must be set here.
+          claude_args: >-
+            --model ${{ inputs.model || steps.cfg.outputs.implement_model }}
+            --effort ${{ inputs.effort || steps.cfg.outputs.implement_effort }}
+            --max-turns ${{ steps.cfg.outputs.implement_max_turns }}
+            --allowedTools "Read,Grep,Glob,Edit,Write,Bash,Agent,Task"
+
+      - name: Gate — denylist and diff size
+        run: avengers-12/lib/check-gate.sh "$LOOP_BASE_BRANCH"
+
+      # How a change proves itself is defined in avengers-12/config.yml, not here.
+      # This used to be two hardcoded Gradle invocations, which was the single
+      # biggest thing stopping another project reusing the harness: a Node repo
+      # and a Go repo need different commands and should not have to edit a
+      # workflow to say so.
+      #
+      # verify.sh runs every step in order, skips any whose `when:` glob the
+      # diff does not touch, and fails the job if any step fails.
+      - name: Verify
+        run: avengers-12/lib/verify.sh
+
+      - name: Push and open draft PR
+        id: pr
+        env:
+          BRANCH: ${{ steps.preflight.outputs.branch }}
+          ISSUE_TITLE: ${{ steps.preflight.outputs.title }}
+          BASE_SHA: ${{ steps.preflight.outputs.base_sha }}
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          LOOP_PROJECT_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+        run: |
+          set -euo pipefail
+          source avengers-12/lib/common.sh
+
+          if [ "$(git rev-parse HEAD)" = "$BASE_SHA" ]; then
+            echo "::error::no commit was produced — the agent finished without committing"
+            exit 1
+          fi
+          git push -u \
+            "https://x-access-token:${LOOP_PROJECT_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+            "HEAD:refs/heads/${BRANCH}"
+
+          # An existing pull request is a success, not a failure.
+          #
+          # A second run on the same issue used to reach `gh pr create`, get
+          # "a pull request already exists for loop/issue-N", kill the job, and
+          # have escalate.sh mark a healthy issue blocked. The branch has just
+          # been pushed, so the existing PR now carries this run's work too —
+          # which is exactly the outcome asked for.
+          EXISTING="$(gh pr list --head "$BRANCH" --state open --limit 1 \
+                        --json url --jq '.[0].url // empty' 2>/dev/null || true)"
+          if [ -n "$EXISTING" ]; then
+            echo "pr_url=$EXISTING" >> "$GITHUB_OUTPUT"
+            echo "::notice::A pull request already exists for ${BRANCH}; pushed this run's work to it: $EXISTING"
+            printf 'Loop pushed more work to the existing draft PR: %s\n' "$EXISTING" > .loop/pr-comment.md
+            loop_comment "$ISSUE" .loop/pr-comment.md
+            exit 0
+          fi
+
+          BODY_FILE=.loop/pr-body.md
+          [ -s "$BODY_FILE" ] || printf '## Loop change for #%s\n' "$ISSUE" > "$BODY_FILE"
+
+          PR_URL="$(gh pr create --draft --base "$LOOP_BASE_BRANCH" --head "$BRANCH" \
+            --title "${ISSUE_TITLE} (#${ISSUE})" --body-file "$BODY_FILE")"
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "::notice::Draft PR opened: $PR_URL"
+          # Marked as a loop comment: an unmarked one reads as a human reply and
+          # would re-trigger the resume path on the loop's own notification.
+          printf 'Loop opened a draft PR: %s\n' "$PR_URL" > .loop/pr-comment.md
+          loop_comment "$ISSUE" .loop/pr-comment.md
+
+      - name: Move card to In Review
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+        run: |
+          set -euo pipefail
+          source avengers-12/lib/common.sh
+          source avengers-12/lib/board.sh
+          board_set_status "$ISSUE" "In Review"
+
+      - name: Record run
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: avengers-12/lib/append-run-log.sh "pr-opened" "issue=$ISSUE" "pr=$PR_URL"
+
+      # always(), not failure(): failure() misses cancellation, and a model
+      # cannot report its own crash. Escalate writes the report, so it must run
+      # before the upload that collects it.
+      - name: Capture run artifacts
+        if: always()
+        env:
+          BASE_SHA: ${{ steps.preflight.outputs.base_sha }}
+        run: |
+          mkdir -p .loop
+          # `git add -N -A` first: `git diff HEAD` shows nothing for an untracked
+          # file, and if the run died before evidence.sh staged anything, every
+          # new file the agent wrote is untracked. The artifact would then be
+          # empty for exactly the runs where it matters most. Intent-to-add
+          # records the paths without committing content, which is all `diff`
+          # needs. It runs before preserve-work.sh strips gate-denied paths, so
+          # the artifact keeps a copy of those too.
+          git add -N -A -- . >/dev/null 2>&1 || true
+          git format-patch "${BASE_SHA:-origin/$LOOP_BASE_BRANCH}..HEAD" -o .loop/patches 2>/dev/null || true
+          git diff HEAD > .loop/working-tree.patch 2>/dev/null || true
+          git status --porcelain > .loop/final-status.txt 2>/dev/null || true
+
+      # Push the work before reporting the failure, so the escalation comment can
+      # truthfully say where the code is. A run that produced good code and died
+      # in a later step must not leave that code only inside a 14-day artifact.
+      #
+      # cancelled() as well as failure(): a cancelled job is not a failed one, so
+      # `if: failure()` skipped this on exactly the case avengers-12/docs/setup.md
+      # advertises as a passing test — cancel a run from the Actions UI and the
+      # work should still be on the branch.
+      - name: Preserve work on the branch
+        if: failure() || cancelled()
+        env:
+          BRANCH: ${{ steps.preflight.outputs.branch }}
+          BASE_SHA: ${{ steps.preflight.outputs.base_sha }}
+          LOOP_PROJECT_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+        run: avengers-12/lib/preserve-work.sh "$BRANCH" "$BASE_SHA"
+
+      - name: Escalate
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+        run: avengers-12/lib/escalate.sh "$ISSUE" "$JOB_STATUS"
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loop-${{ github.run_id }}
+          path: .loop/
+          retention-days: 14
+          if-no-files-found: warn
+          # .loop/ is hidden; without this the artifact uploads empty.
+          include-hidden-files: true

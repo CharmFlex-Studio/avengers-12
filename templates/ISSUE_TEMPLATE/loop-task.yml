@@ -1,0 +1,83 @@
+name: Loop task
+description: A scoped unit of work the loop harness can implement unattended
+title: "[loop] "
+labels: ["loop:needs-spec"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This template is the readiness contract for `loop-implement`. Preflight refuses to
+        start a run on an issue that has no acceptance criteria, so the sections below are
+        not paperwork — they are the agent's entire specification.
+
+        Scope is **`composeApp` and `backend/`** — each has its own gate step. `webview-sdk/` and `iosApp/`
+        are on the gate denylist and a run touching them will fail.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: One or two sentences. What should be true after this change that isn't true now?
+      placeholder: Vocab list items render the word in bold so it separates from the meaning line.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: >
+        Checkable statements, one per line. The verifier judges the diff against these and
+        nothing else, so anything left implicit here will not be built. Avoid "should feel
+        better" — write what a test or a screenshot would show.
+      value: |
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Files or areas likely touched
+      description: >
+        Best guess is fine — it seeds the brief's in-scope list. If you genuinely don't know,
+        say so and label this `loop:needs-spec` until triage has looked at it.
+      placeholder: |
+        composeApp/src/commonMain/kotlin/.../feature/vocab/presentation/HomeScreen.kt
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: >
+        The single most effective field in this template. Naming what NOT to touch is how you
+        stop a run turning a two-file change into a refactor the verifier then rejects.
+      value: |
+        - Unrelated refactors
+        - Tests unrelated to this change
+        - Localization of strings outside this feature
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Context / prior art
+      description: Existing code that does something similar, a linked issue, a screenshot.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before adding `loop:ready`
+      options:
+        - label: The acceptance criteria can be checked without asking me a question
+          required: false
+        - label: This is one change, not a bundle of several
+          required: false
+        - label: Nothing here requires an architectural decision that hasn't been made
+          required: false

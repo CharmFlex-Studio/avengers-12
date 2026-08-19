@@ -1,0 +1,191 @@
+# avengers-12 — the only file you have to change.
+#
+# Everything project-specific lives here. Nothing in avengers-12/lib/ should
+# contain a path, a build command, a column name or a limit that belongs to one
+# repository. If you find one, that is a bug.
+#
+# Every value below is a placeholder EXCEPT the ones marked "safe default".
+# Work top to bottom, then run `npx avengers-12 doctor` until it is quiet.
+
+version: 1
+
+# --- the gate --------------------------------------------------------------
+# Checked AFTER the agent finishes and BEFORE anything is pushed. The agent is
+# never asked whether it behaved; the diff is inspected.
+gate:
+  # Paths a run may never touch. Two kinds belong here:
+  #   1. the harness's own files — a run that can edit these can widen its own
+  #      permissions, which makes every other rule decorative
+  #   2. anything the verify commands below cannot check. A green run that
+  #      verified nothing is worse than a refused one.
+  deny:
+    # --- keep these three, whatever your project is --------------------------
+    - ".github/**"
+    - ".claude/**"
+    - "avengers-12/**"
+
+    # --- your house-rules documents. Must match `houseRules:` below ----------
+    - "AGENTS.md"
+    - "CLAUDE.md"
+
+    # --- secrets and signing material. Add anything your project keeps -------
+    - ".env"
+    - ".env.*"
+    - "**/secrets/**"
+    - "**/credentials/**"
+
+    # --- build infrastructure. Replace with yours ----------------------------
+    # Gradle: gradle/wrapper/**, gradlew, gradlew.bat
+    # Node:   package-lock.json, pnpm-lock.yaml, yarn.lock
+    # Go:     go.sum
+    - "package-lock.json"
+
+    # --- TODO: anything no verify command below covers -----------------------
+    # A second platform, a vendored SDK, generated code. If the gate cannot
+    # check it, deny it.
+
+  # A change touching more than this many files is not "one fix per run".
+  # Safe default.
+  maxFilesChanged: 100
+
+  # Paths allowed even though a deny pattern above matches them.
+  # Evaluated after deny; first match wins.
+  allow: []
+
+# --- how a change proves itself --------------------------------------------
+# TODO: replace with your real commands. Run in order; all must pass or nothing
+# is pushed. An empty list is refused — it would mean nothing checks anything.
+#
+# `when` is a path glob. The step is skipped when the diff does not touch it,
+# so a front-end-only run does not pay for the back-end build.
+verify:
+  - name: test
+    run: npm test
+
+  # A second build in its own directory, with its own lockfile:
+  # - name: api
+  #   run: npm test
+  #   workingDirectory: api
+  #   when: "api/**"
+
+# --- where tests go ---------------------------------------------------------
+# TODO: point these at real paths. `directory` must be somewhere the verify
+# commands above actually run, or "tests are green" means nothing. `example` is
+# read by the coder before it writes its first test, so it learns your house
+# style instead of inventing one.
+tests:
+  directory: test
+  example: test/example.test.js
+  # Directories that look like tests but are NOT run by the verify commands.
+  # Named so the coder is told plainly rather than discovering it at the gate.
+  notRun: []
+
+# --- what the runner needs before verify ------------------------------------
+# Every key is optional. Leave `java` unset and the JDK step is skipped
+# entirely.
+runtime:
+  # java: "17"
+  # javaDistribution: temurin
+  cache:
+    - ~/.npm
+  cacheKeyFiles:
+    - "**/package-lock.json"
+  chmod: []
+
+# --- what the coder may and may not do --------------------------------------
+# You do NOT list Write/Edit denies here. Every path in `gate.deny` above is
+# turned into a Write() and an Edit() deny automatically by
+# avengers-12/lib/emit-settings.sh. Writing them twice is how the two lists
+# drift, and a drifted pair means the agent spends a whole run editing something
+# the gate then refuses.
+permissions:
+  # TODO: your build tool and test runner. The harness already allows read-only
+  # git and denies git push, gh, curl and wget for everyone.
+  allowBash:
+    - "npm:*"
+    - "npx:*"
+
+  # Paths the agent may not even READ — material that should never reach a log
+  # or a model's context. Add anything your project keeps.
+  denyRead:
+    - ".env"
+    - ".env.*"
+    - "**/secrets/**"
+    - "**/credentials/**"
+    - ".git/config"
+    - "**/.git/**"
+
+# --- house rules ------------------------------------------------------------
+# Project documents every agent must read before editing. They hold the standing
+# rules of your codebase and they are the only place those rules are written
+# down. Every entry must also be on the gate denylist above, or a run can edit
+# the rules it is judged against.
+houseRules:
+  - AGENTS.md
+  - CLAUDE.md
+
+# --- one-time bootstrap -----------------------------------------------------
+# Markdown files avengers-12/lib/seed-board.sh reads to turn existing `- [ ]`
+# checklists into issues. Used once, when the board is empty.
+seed:
+  sources: []
+
+# --- the board --------------------------------------------------------------
+# Column names must match your GitHub Project exactly. `optional: true` lets the
+# loop run on labels alone, which is the right setting until a board resolves.
+board:
+  optional: true
+  statusField: Status
+  columns:
+    todo: Todo
+    inProgress: In Progress
+    inReview: In Review
+    blocked: Blocked
+    done: Done
+
+# --- labels -----------------------------------------------------------------
+# Safe defaults. Change only if these names collide with labels you already use.
+labels:
+  prefix: "loop:"
+  ready: "loop:ready"
+  inProgress: "loop:in-progress"
+  inReview: "loop:in-review"
+  blocked: "loop:blocked"
+  needsSpec: "loop:needs-spec"
+
+# --- branches ---------------------------------------------------------------
+branch:
+  prefix: "loop/issue-"
+
+# --- caps -------------------------------------------------------------------
+# Enforced in code, not by asking the model to count. Start low.
+budget:
+  maxRunsPerDay: 2
+  maxAttemptsPerRun: 3
+  staleClaimHours: 2
+  priorFilesMax: 200
+
+# --- models -----------------------------------------------------------------
+models:
+  triage:
+    model: claude-sonnet-5
+    effort: medium
+    maxTurns: 30
+  implement:
+    model: claude-opus-5
+    effort: high
+    maxTurns: 80
+
+# --- where the harness keeps things ----------------------------------------
+# Safe defaults. Change these only if you move the folder.
+paths:
+  state: avengers-12/state/STATE.md
+  runLog: avengers-12/state/run-log.md
+  rules: avengers-12/rules
+  settings: avengers-12/settings
+  lib: avengers-12/lib
+
+# --- git identity used for harness commits ---------------------------------
+git:
+  userName: avengers-12-loop
+  userEmail: loop@users.noreply.github.com

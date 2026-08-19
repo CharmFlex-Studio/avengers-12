@@ -1,0 +1,43 @@
+{
+  "name": "avengers-12",
+  "version": "0.1.0",
+  "description": "An autonomous GitHub issue loop for Claude Code: triage a queue, implement one issue, gate the diff, open a draft PR — all driven by one config file.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "github-actions",
+    "autonomous-agent",
+    "agent-loop",
+    "ci"
+  ],
+  "license": "MIT",
+  "author": "CharmFlex-Studio",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharmFlex-Studio/avengers-12.git",
+    "directory": "avengers-12"
+  },
+  "homepage": "https://github.com/CharmFlex-Studio/avengers-12/tree/main/avengers-12#readme",
+  "bugs": {
+    "url": "https://github.com/CharmFlex-Studio/avengers-12/issues"
+  },
+  "bin": {
+    "avengers-12": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "rules",
+    "settings",
+    "docs",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "bash lib/doctor.sh"
+  }
+}
