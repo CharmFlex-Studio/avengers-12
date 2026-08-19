@@ -1,380 +1,292 @@
 # avengers-12
 
-Board-driven issue implementation, as a folder you can lift into another repo.
+**Give Claude a GitHub issue. Get back a draft pull request.**
 
-Everything project-specific lives in `config.yml`. Nothing in `lib/` names a path, a build
-command or a column that belongs to one repository — if you find one, that is a bug worth
-reporting, because it is the thing that stops anyone else reusing this.
+You write an issue and label it. A GitHub Action picks it up, writes the code, runs your
+tests, and opens a draft PR. If it gets confused, it stops and asks you a question on the
+issue. You reply, and it carries on.
 
-You start it, and you answer its questions. Everything between those two things is
-automatic.
+It never merges anything. You review every pull request, as usual.
 
-## Install
-
-```bash
-npx avengers-12 init      # copies the harness into this repository
+```
+     you                          avengers-12                       you
+      │                                │                             │
+  write an issue  ──────────────▶  reads it                          │
+  label it "loop:ready"            writes the code                   │
+      │                            runs your tests                   │
+      │                            opens a draft PR  ──────────────▶ review & merge
+      │                                │
+      │◀── asks a question ────────  stuck?
+   reply on the issue  ───────────▶ carries on
 ```
 
-Then, in Claude Code:
+---
+
+## Before you start
+
+You need all four:
+
+| | |
+|---|---|
+| A **GitHub repository** | public or private, your own or your org's |
+| A **Claude subscription** | Pro or Max. Runs bill against it |
+| **Node 18+** | only to install. The harness itself is bash and python |
+| **20 minutes** | most of it clicking around GitHub settings |
+
+Your project can be anything — Gradle, Node, Go, Python, Rust. You tell it how to build and
+test in one config file.
+
+---
+
+## Setup
+
+### Step 1 — copy the files in
+
+In your project folder:
+
+```bash
+npx avengers-12 init
+```
+
+This copies files into your repo. It never overwrites anything you have already changed.
+
+### Step 2 — let Claude Code fill in the config
+
+In Claude Code, in the same folder:
 
 ```
 /setup-workflow
 ```
 
-That reads what kind of project this is, writes `config.yml` from it, creates the labels,
-and hands you a checklist of the steps that happen in a browser and cannot be automated —
-the GitHub App, the token, the board. Budget about twenty minutes, most of it in the
-browser.
+It looks at your project, works out how you build and test it, and writes
+`avengers-12/config.yml`. Then it tells you which of the steps below are still outstanding.
 
-Prefer to do it by hand? Edit `avengers-12/config.yml`, run `npx avengers-12 doctor` until
-it is quiet, and follow [`docs/setup.md`](docs/setup.md).
+*No Claude Code? Edit `avengers-12/config.yml` by hand instead — every line has a comment
+saying what it wants. Then run `npx avengers-12 doctor` until it stops complaining.*
 
-**Requirements:** Node 18+ to install. The harness itself runs on the GitHub runner and
-needs `bash`, `jq` and `python3`, all of which `ubuntu-latest` already has. Nothing is
-installed into your project — `init` copies files, and `node_modules` is not needed at
-run time.
+### Step 3 — the browser steps
 
-**Status: 0.1.0.** The logic is bash and python, not Node; npm is how it reaches your
-repository, not what runs it. It has been used in anger on one Gradle project and is tested
-on every commit against a scratch Node project (`npm test`). Treat the config format as
-stable and everything else as early.
+These four cannot be automated. Nothing can do them for you.
 
-**Extracted from a real repository, not written as a library.** That is the main reason to
-trust it and the main thing to watch: it does the things one project actually needed, and
-`test/install.sh` exists specifically to catch the parts of that project that tried to come
-along.
+**3a. Install the Claude GitHub App** — <https://github.com/apps/claude>, install it on your
+repository.
 
-## Layout
+**3b. Get your Claude token.** In a terminal:
 
-```
-.github/workflows/          the only files that cannot live in this folder.
-  loop.yml                  GitHub reads workflows from here and nowhere else.
-  loop-board-done.yml       They hold wiring, never logic.
-  claude.yml
-
-avengers-12/
-  config.yml                EVERYTHING project-specific. Start here.
-  README.md                 this file
-  lib/                      the enforcement layer. Runs as workflow steps, never inside
-                            the agent, and never asks a model whether a rule was followed.
-  rules/                    constraints.md, budget.md — prose for the agent to read
-  settings/                 implement.json, triage.json — tool permissions
-  docs/setup.md             one-time setup
-  state/                    STATE.md and run-log.md, written by runs
-
-.claude/skills/, .claude/agents/     the agent contracts. Claude Code discovers them at
-                                     these paths, so they cannot move into this folder yet.
+```bash
+claude setup-token
 ```
 
-## Checking an installation
+Copy what it prints. In GitHub: **Settings → Secrets and variables → Actions → Secrets →
+New repository secret**
 
+- Name: `CLAUDE_CODE_OAUTH_TOKEN`
+- Value: the token you just copied
+
+**3c. Make a GitHub token.** **Settings → Developer settings → Personal access tokens →
+Fine-grained tokens → Generate new token**
+
+- Repository access: only this repository
+- Repository permissions: **Contents**, **Issues**, **Pull requests** — all Read and write
+- If a **board** is wanted: also Projects → Read and write
+
+Save it as a second repository secret named `LOOP_PROJECT_TOKEN`.
+
+> **If your repo belongs to an organisation:** set *Resource owner* to the organisation, not
+> your username. Then an org owner has to **approve** the token. Until they do, it works
+> perfectly and sees nothing — which is confusing enough that it is worth checking first.
+
+**3d. Merge to your default branch.** Commit what `init` created and merge it to `main`.
+
+GitHub only runs workflows from the default branch when someone comments on an issue. Until
+this is merged, replying to a question does nothing at all.
+
+### Step 4 — check it
+
+```bash
+npx avengers-12 doctor
 ```
-avengers-12/lib/doctor.sh
+
+Fix whatever it names. Run it again. Keep going until it is quiet.
+
+Full detail on every step, including screenshots' worth of specifics:
+[`docs/setup.md`](docs/setup.md).
+
+---
+
+## Your first run
+
+**1. Write an issue.** A title, what you want, and how you would know it worked:
+
+```markdown
+## Acceptance criteria
+- [ ] Empty search box shows "Type to search" instead of a blank list
+- [ ] A test covers the empty-input case
 ```
 
-It compares the things that must agree and fails when they do not: the gate denylist
-against the write permissions, `branch.prefix` against the workflow that triggers on it,
-`tests.directory` and `houseRules` against the filesystem, the evidence files the verifier
-reads against the ones `evidence.sh` writes, config keys against whether anything reads
-them, workflow defaults against whether they shadow the config, every script against
-`bash -n`.
+Acceptance criteria are not paperwork. They are the whole specification the coder gets.
+Vague criteria produce vague code, or a run that stops and asks you what you meant.
 
-**It also runs on every loop run**, as the first step of the triage job, before credentials
-are even checked. That is the point: a drift check nobody runs is the same problem as the
-drift it looks for. An incoherent harness now refuses to start, in seconds, instead of
-producing a confusing failure forty minutes later.
+**2. Label it `loop:ready`.**
 
-This exists because the harness's recurring bug was never a crash. It was a document
-promising a rule that no code enforced — a 25-file cap while the gate allowed 100,
-permission rules missing half the denylist, a test folder named in three files and present
-in none. Every one of those was checkable, and nothing checked it.
+**3. Start a run.** GitHub → **Actions** → **Loop** → **Run workflow**.
 
-## Active loops
+Pick `triage-only` the first time. It reads your queue and tells you what it thinks,
+without spending a run. Read that before letting it write code.
 
-| Pattern | Trigger | Autonomy | What it does |
-|---|---|---|---|
-| **Loop** | `Loop` (manual, one button) | L2 draft PR | Triage → pick the next ready issue → implement it → draft PR |
-| **Resume** | your comment on a `loop:blocked` issue | L2 draft PR | Same as above, on that issue, continuing the branch it left behind |
-| Review iteration | `@claude` on a PR | L2 | Answers your review comments on the PR's own branch |
-| Board close-out | a loop PR is closed | — | Moves the card to Done on merge, back to Todo if it was closed unmerged |
+**4. Then run it for real.** Same button, `mode: full`. About 20 minutes later you get a
+draft PR.
 
-`Loop` runs as two jobs. `triage` is read-only and always runs; `implement` runs only when
-the picker finds an eligible issue, so an empty queue costs two minutes and nothing else.
+---
 
-## When a run gets stuck
+## Day to day
 
-It comments on the issue with a "What I need from you" line. **Reply to that comment.**
-That is the whole procedure — the reply fires the workflow again, `pick-next.sh` clears
-`loop:blocked` and restores `loop:ready` in bash, and the run continues on the same branch
-with your answer in `.loop/answer.md`.
-
-You do not click a label, move a card, or re-run a workflow. If you find yourself doing any
-of those, something is broken and it is worth saying so.
-
-The reply must come from someone with write access (OWNER / MEMBER / COLLABORATOR), on an
-issue rather than a PR, and must not contain `@claude` — that phrase belongs to the
-interactive workflow, and firing both would put two agents on one issue.
-
-Because `issue_comment` workflows are read from the **default branch**, resume only works
-once the harness is on `main`. That is the same single merge the dispatch buttons need.
-
-Inputs, all optional:
-
-| Input | Effect |
+| You want to | Do this |
 |---|---|
-| `issue_number` | Work this issue and skip triage entirely |
-| `mode: triage-only` | Rank the queue and stop before implementing |
-| `base_branch` | Blank = the branch you selected in "Use workflow from" |
-| `model` | `claude-opus-5` for genuinely hard issues |
+| Queue up work | Write an issue, label it `loop:ready` |
+| Start a run | Actions → Loop → Run workflow |
+| Answer a question | Reply on the issue. It restarts by itself |
+| Stop everything | Set the repo variable `LOOP_PAUSE_ALL` to `true` |
+| See what it thinks | `avengers-12/state/STATE.md`, rewritten every run |
 
-Not on a schedule. Adding `schedule:` is one line once the run history justifies it.
+### The labels
 
-## Who decides what gets worked on
-
-Triage produces a ranked queue, and that ranking is model output — useful to read, not
-something to obey. **`avengers-12/lib/pick-next.sh` makes the actual choice, in bash**, by
-rules you can check by hand.
-
-First it does the housekeeping nobody should have to do by hand:
-
-- **releases stale claims** — an issue stuck on `loop:in-progress` behind a runner that
-  died is cleared, once no other Loop run is in flight and the claim is older than
-  `LOOP_STALE_CLAIM_HOURS` (default 2)
-- **resumes answered issues** — a `loop:blocked` issue whose newest human comment is newer
-  than its newest `<!-- loop-escalation -->` gets `loop:blocked` removed, `loop:ready`
-  restored, and its card moved back to Todo
-
-Then it picks:
-
-1. issue is open
-2. carries `loop:ready`
-3. carries neither `loop:in-progress` nor `loop:blocked`
-4. has no open pull request from `loop/issue-N` — that work is already done
-5. order: **issues you just answered**, then the board's **Todo column order**, then the
-   lowest issue number
-
-The run summary prints the full shortlist alongside the pick, so the decision is auditable
-rather than a black box. If you disagree with what it chose, drag the card in the board's
-Todo column — that is what the ordering reads.
-
-## The board
-
-The board is the source of truth for *what order* work happens in and *where each item
-stands*. Labels remain the source of truth for *whether* an issue may be worked at all —
-which is why a broken board degrades the queue's ordering but can never stop the harness.
-
-| Column | Set by |
+| Label | Means |
 |---|---|
-| Todo | `pick-next.sh` when it resumes an answered issue or releases a stale claim; `loop-board-done.yml` when a PR is closed unmerged |
-| In Progress | `preflight.sh`, when the run claims the issue |
-| In Review | the `Push and open draft PR` step |
-| Blocked | `escalate.sh` |
-| Done | `loop-board-done.yml`, when the PR merges |
+| `loop:ready` | Queued. It will pick this up |
+| `loop:in-progress` | Being worked on right now |
+| `loop:in-review` | Draft PR is open, waiting for you |
+| `loop:blocked` | It asked you something and stopped |
+| `loop:needs-spec` | Too vague to attempt. Add detail |
 
-Every worked issue is added to the board automatically — `preflight.sh` calls
-`gh project item-add` when the card does not exist yet, so nothing is worked on invisibly.
-No column is ever moved by a model: `avengers-12/settings/triage.json` denies every
-`gh project` write, so a card's position always reflects what a run did rather than what a
-model believed.
+**You never set these by hand.** Except `loop:ready` — that one is how you say "go".
 
-## Which branch the loop works on
+### When it asks you a question
 
-Work here happens on feature branches (`jiaming/transcription`, `feat/auto-translation`,
-`ui/modern-refactor`), not on `main`, and the loop follows that.
+It comments on the issue and stops. Reply in plain words.
 
-Two different things are involved, and it's worth keeping them apart:
+That is all. Your reply restarts it automatically. Do not change the label.
 
-| | |
+**One trap:** do not write `@claude` in your reply. That phrase belongs to a different
+workflow and your answer will go to the wrong place. Just answer normally.
+
+---
+
+## What it will not do
+
+Deliberate limits, not missing features:
+
+- **It never merges.** Every PR is a draft. You review and merge.
+- **It never pushes to your default branch.** Only to `loop/issue-N` branches.
+- **It cannot edit its own rules.** `config.yml`, the workflows and the harness scripts are
+  blocked. A run that could widen its own permissions would make every other rule pointless.
+- **It stops rather than guesses.** A vague issue gets a question, not an invented answer.
+- **It runs twice a day by default.** Change `budget.maxRunsPerDay` in `config.yml`.
+- **One run at a time.** A second run queues behind the first.
+
+Whatever it changes is checked *after* it finishes and *before* anything is pushed: the
+files it touched are compared against your denylist, and your own build and tests must
+pass. It is never asked whether it behaved. The diff is inspected.
+
+---
+
+## When something goes wrong
+
+| What you see | What it means |
 |---|---|
-| **Where the workflow is read from** | The **"Use workflow from"** dropdown in the Actions tab. GitHub reads the workflow file from that branch and runs that version of it. |
-| **What the loop builds on** | The same branch, by default. Override with the `base_branch` input if you want to dispatch a workflow from one branch but base the work on another. |
+| Run is red at the first step | Setup is incomplete. Run `npx avengers-12 doctor` |
+| `Invalid username or token` | The fine-grained token is not approved yet, or lacks a permission |
+| Card does not move on the board | Look at the top of the run summary — it now says why |
+| Issue got `loop:needs-spec` | Too vague to attempt. Add acceptance criteria |
+| Run green but nothing happened | Read the summary. It says what it decided and why |
+| Nothing happens when you reply | The workflow is not on your default branch yet (step 3d) |
 
-So to implement an issue on top of `jiaming/transcription`: pick that branch in the
-dropdown, enter the issue number, run. The loop branches `loop/issue-N` from it, and the
-draft PR targets it — `main` is never involved.
+The run summary page is written for you to read. Start there, not in the logs.
 
-**One unavoidable exception.** GitHub only lists a `workflow_dispatch` workflow in the
-Actions tab if the file exists on the repository's **default branch**. So the harness has
-to be merged to `main` once, for the buttons to appear at all. After that single merge,
-nothing else needs to touch `main`.
-
-The base branch is **recorded on the branch itself**, as a `Loop-Base-Branch:` trailer on
-an empty marker commit that `preflight.sh` makes when it creates `loop/issue-N`. If a
-later run targets a different base, preflight reads that trailer and refuses rather than
-stacking the change on unrelated history — it tells you to delete the stale branch or name
-the base it came from. A branch created before this recording existed has no trailer;
-preflight says so and reuses it unverified rather than stranding the work.
-
-This is also what makes resume-by-comment work on feature branches. A comment-triggered run
-starts on the default branch, because that is where GitHub reads the workflow from — so it
-reads the trailer and re-bases itself onto the branch the work actually belongs to.
-
-## The design in one line
-
-**The model proposes, bash disposes.** Claude commits locally and cannot push. Every rule
-that matters is a workflow step, not an instruction:
-
-| Rule | Enforced by |
-|---|---|
-| Path denylist, diff size | `avengers-12/lib/check-gate.sh` + `avengers-12/config.yml` |
-| Build and tests green | a gradle step that runs after the agent exits |
-| No push, no self-editing | `avengers-12/settings/implement.json` deny rules, mirroring `avengers-12/config.yml` |
-| Readiness, daily cap, kill switch | `avengers-12/lib/preflight.sh` |
-| Correct base branch | the `Loop-Base-Branch:` trailer, read by `preflight.sh` |
-| Max 3 fix attempts per run | `.loop/attempts.json`, written by `avengers-12/lib/evidence.sh` |
-| Which issue gets worked, and in what order | `avengers-12/lib/pick-next.sh` |
-| A reply resumes the work | the `issue_comment` trigger + `pick-next.sh` |
-| A saved branch stays usable | `avengers-12/lib/strip-denied.sh` |
-| Nothing disappears silently | `avengers-12/lib/escalate.sh` on `if: always()`, `preserve-work.sh` on `failure() \|\| cancelled()` |
-
-## Agents
-
-One Claude invocation per implement run, orchestrating three subagents:
-
-| Agent | Role | Can |
-|---|---|---|
-| orchestrator (`loop-implement` skill) | state machine, artifact bus | sequence, package — not edit source, not overrule a verdict |
-| `loop-implementer` | writes code | edit, compile — not commit, push, or spawn agents |
-| `loop-verifier` | blocking judgment | read, run tests — not write anything |
-| `kotlin-reviewer` | advisory quality notes | read — never blocks |
-
-They cooperate through typed files in `.loop/`, never through conversation. The verifier is
-given the evidence and the acceptance criteria and nothing else — never the implementer's
-account of its own work.
-
-## Honest limits
-
-Five things are weaker than they look. Better to know than to be surprised:
-
-- **The verifier could read the implementer's rationale.** `evidence.sh` moves
-  `changes.md` out of the repo before VERIFY, but the verifier has `Bash` and could go
-  looking. This raises the bar; it is not a hard boundary. Real isolation needs a separate
-  filesystem view, which the action doesn't offer.
-- **`main` is not protected by the harness.** The triage job commits `avengers-12/state/STATE.md` directly to
-  `main` — that's the harness, not the agent, and the agent has no credential to do the
-  same. Enable branch protection anyway; see `avengers-12/docs/setup.md`.
-- **Permission deny rules are prefix matches.** `Bash(git push:*)` does not stop
-  `git -C . push`. They are a second layer. The load-bearing controls are structural: no
-  credential on the Claude step, and `check-gate.sh` reading the real diff afterwards.
-  Where a whole verb can be denied, it is: triage denies `Bash(git:*)` outright, because it
-  has no use for git. Note that deny beats allow, so you cannot deny a verb and allow one
-  subcommand back.
-- **`@claude` does not push through bash.** `claude.yml` loads `avengers-12/settings/implement.json`, which
-  denies `git push` and every `gh` command. What it can still do is edit the working tree
-  and write through the action's own GitHub integration. The workflow now resolves the pull
-  request's head branch before checkout, so it is at least looking at the code under
-  review — it used to check out the default branch and answer about the wrong tree. If you
-  need a change pushed and it does not appear on the PR, do it by hand rather than assuming
-  the workflow will.
-- **Board ordering is the API's order, not a saved rank.** `gh project item-list` has no
-  "position" field, so `pick-next.sh` uses the order the Todo column comes back in. It
-  tracks the board closely in practice, but it is not a guarantee, and it is advisory by
-  design: labels decide eligibility, the board only decides sequence.
-
-## Human gates
-
-- Draft PR only. You merge. The agent never pushes and cannot reach `main`.
-- Escalations arrive as a comment on the source issue, with a mandatory "What I need from
-  you" line naming the decision.
-- Kill switch: set repo variable `LOOP_PAUSE_ALL=true`. Both workflows skip immediately.
+---
 
 ## Configuration
 
-Two places, and they answer different questions.
+One file: `avengers-12/config.yml`. Nothing project-specific lives anywhere else.
 
-**`avengers-12/config.yml`** — what this project is. Paths, build commands, limits, column
-names, models. Version-controlled, reviewed like code, and the only file you edit to move
-the harness to another repository.
+The parts you will actually touch:
 
-**Repo variables and secrets** — what this *installation* is. Things that must not be in
-git, or that differ per environment.
+```yaml
+verify:                              # how a change proves itself
+  - name: test
+    run: npm test                    # your real command
 
-Read `config.yml` before this list; almost everything now lives there.
+gate:
+  deny:                              # paths a run may never touch
+    - ".env"
+    - "**/secrets/**"
 
-| Where a value lives | Examples |
-|---|---|
-| `config.yml` | denylist, verify commands, test folders, house-rules documents, runtime and JDK, board columns, labels, branch prefix, caps, models, seed sources |
-| Repo variables | board number and owner, kill switch |
-| Repo secrets | tokens |
+tests:
+  directory: test                    # where new tests go
+  example: test/example.test.js      # the style to copy
 
-Repo **variables**: `LOOP_PROJECT_NUMBER`, `LOOP_PROJECT_OWNER`, `LOOP_PAUSE_ALL`,
-optionally `LOOP_BOARD_OPTIONAL`.
+budget:
+  maxRunsPerDay: 2
+```
 
-`LOOP_BOARD_OPTIONAL` overrides `board.optional` in `config.yml`, which ships as `true`.
-That default is deliberate: requiring the board used to fail the triage job — and, through
-`needs:`, the implement job — so a board that had never been configured could stop the
-entire harness. Set `board.optional: false` once your board resolves, to make a broken board
-loud again.
+`verify` is the one that matters most. If your command does not actually run your tests,
+then "tests passed" means nothing and every run goes green having proved nothing.
 
-The workflow passes these variables through **without a `|| default`**, on purpose. An
-unset repository variable arrives as an empty string, which every script reads as "not
-set" and falls back to `config.yml` for. Writing a default in `loop.yml` instead made the
-variable always non-empty, so `budget.maxRunsPerDay` and `board.optional` were never read
-at all — the file said 9 and the run still stopped at 4. `doctor.sh` now refuses that
-shape.
+Everything else — labels, branch names, board columns, models, caps — has a working default
+and a comment in the file explaining it.
 
-Caps moved into `config.yml` under `budget:` — `maxRunsPerDay`, `maxAttemptsPerRun`,
-`staleClaimHours`, `priorFilesMax`. Every one can still be overridden for a single run by
-setting the matching `LOOP_*` environment variable, because environment wins over config in
-`common.sh`. That is for debugging, not for configuration.
+---
 
-Repo **secrets**: `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`, bills your
-subscription), `LOOP_PROJECT_TOKEN` (fine-grained PAT — Projects v2 is invisible to both
-`GITHUB_TOKEN` and the Claude GitHub App), optionally `LOOP_WEBHOOK_URL`.
+## Commands
 
-## Scope
+```bash
+npx avengers-12 init      # copy the harness in (safe to re-run)
+npx avengers-12 doctor    # check the installation, 14 checks
+npx avengers-12 version
+```
 
-Two lists in `config.yml` decide it, and nothing else does:
+`init --force` refreshes the scripts and workflows to the current version. It never touches
+`config.yml` or your run history, whatever flags you pass.
 
-- **`verify`** — what a change must pass. A directory covered by a verify step is in scope,
-  including one behind a `when:` glob that only runs when the diff touches it.
-- **`gate.deny`** — what a run may never touch. Everything a verify step cannot check
-  belongs here, because a green run that verified nothing is worse than a refused one.
+---
 
-There is no third category. A path is checked or it is denied.
+## Honest status
 
-The gate runs on `ubuntu-latest`. A platform that needs a different runner is not covered,
-and belongs on the denylist — `macos-latest` bills included Actions minutes at 10×, which
-for this repository would cut roughly 375 runs a month to 28. Build the draft PR locally
-before merging anything that touches code those platforms share.
+**Version 0.2.1. Early.**
 
-## Files
+- The logic is bash and python. npm is how it reaches your repo, not what runs it.
+- Used daily on one Gradle project. Tested on every commit against a scratch Node project.
+- Needs `bash`, `jq` and `python3` on the runner. `ubuntu-latest` has all three. Windows
+  runners are untested.
+- Extracted from a real repository rather than designed as a library. That is the reason to
+  trust it and the thing to watch: it does what one project genuinely needed.
 
-Everything below lives in `avengers-12/` unless it says otherwise.
+Treat `config.yml` as stable and everything else as liable to change.
 
-| Path | What it is |
-|---|---|
-| `config.yml` | the only file another project must edit |
-| `lib/config.py` | parses `config.yml` into JSON; a small YAML subset, deliberately not PyYAML |
-| `lib/doctor.sh` | checks that config, permissions, workflows and the filesystem agree |
-| `lib/verify.sh` | runs the `verify:` steps; this is how a change proves itself |
-| `lib/cache_key.py` | hashes `runtime.cacheKeyFiles`, because `hashFiles()` cannot read its globs from a file |
-| `lib/check_config_used.py` | finds config keys nothing reads; a dead key looks configurable and is not |
-| `lib/seed-board.sh` | one-time bootstrap: turns `seed.sources` checklists into issues |
-| `lib/emit-config.sh` | publishes config values as workflow step outputs, because `${{ }}` cannot read a file |
-| `lib/gate_check.py` | matches the diff against `gate.deny` |
-| `lib/pick-next.sh` | chooses the issue; owns the stale sweep and the resume sweep |
-| `lib/issue-state.sh` | the checkable facts: has a human answered, is that claim dead |
-| `lib/strip-denied.sh` | keeps a saved branch free of gate-denied paths |
-| `lib/recorded-base.sh` | reads and writes the `Loop-Base-Branch:` trailer |
-| `rules/constraints.md` | the binding rules, and which are machine-enforced |
-| `rules/budget.md` | caps and kill switch |
-| `state/STATE.md` | the queue as of the last triage |
-| `state/run-log.md` | one JSON entry per run |
-| `docs/setup.md` | one-time setup checklist |
-| `.claude/skills/loop-*`, `.claude/agents/loop-*` | the agent contracts, outside this folder because Claude Code discovers them there |
+---
 
-The unit test named by `tests.example` in `config.yml` is why `verify` being green means
-something. Point it at a real test, or the build passes with nothing run.
+## Reference
 
-## Moving this to another project
+- [`docs/setup.md`](docs/setup.md) — every setup step in full
+- [`rules/constraints.md`](rules/constraints.md) — the rules a run must follow, and which
+  are enforced by code rather than asked for politely
+- [`rules/budget.md`](rules/budget.md) — what a run costs and where the caps live
+- [`CHANGELOG.md`](CHANGELOG.md)
 
-1. Copy `avengers-12/` and `.github/workflows/`.
-2. Edit `config.yml`: `gate.deny`, `verify`, `tests`, `runtime`, `board.columns`.
-3. Run `avengers-12/lib/doctor.sh` until it is quiet.
-4. Set the repo variables and secrets above.
+### What is in your repo after `init`
 
-Step 3 is the one that catches the mistakes. Do not skip it.
+```
+avengers-12/
+  config.yml         yours. The only file you must edit
+  lib/               the scripts. Run by GitHub Actions, never by the model
+  rules/             what a run must follow
+  settings/          what the model is allowed to do
+  docs/setup.md      the long form of step 3
+  state/             what happened. Written by the loop, read by you
 
-Phases 2 and 3 of `workflow-refactor.md` turn this copy step into an npm package and a
-15-line workflow. Until then, copying the folder is the install.
+.github/workflows/   loop.yml and loop-board-done.yml
+.claude/             the skills and subagents Claude Code uses
+```
+
+MIT licensed. Issues and pull requests welcome:
+<https://github.com/CharmFlex-Studio/avengers-12>
