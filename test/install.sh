@@ -24,6 +24,10 @@ trap 'rm -rf "$WORK"' EXIT
 say() { printf '\n== %s\n' "$*"; }
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
+say "environment"
+printf '   %s\n' "$(uname -s) $(uname -m)" "node $(node --version)" "npm $(npm --version)" \
+                  "$(bash --version | head -n1)" "jq $(jq --version)" "$(python3 --version)"
+
 say "pack"
 TARBALL="$(cd "$HERE" && npm pack --pack-destination "$WORK" --silent | tail -n1)"
 [[ -f "$WORK/$TARBALL" ]] || fail "npm pack produced nothing"
@@ -46,15 +50,24 @@ say "install into a scratch Node project"
 CONSUMER="$WORK/consumer"
 mkdir -p "$CONSUMER/test"
 cd "$CONSUMER"
-git init -q . && git commit -q --allow-empty -m init
+git init -q .
+git config user.name  "avengers-12 test"
+git config user.email "test@example.invalid"
+git commit -q --allow-empty -m init
 printf '{"name":"scratch","version":"1.0.0","scripts":{"test":"node -e 0"}}\n' > package.json
 printf 'console.log("ok");\n' > test/example.test.js
 printf '# House rules\n' > AGENTS.md
 printf '# Claude notes\n' > CLAUDE.md
-npm install --silent "$WORK/$TARBALL" >/dev/null 2>&1 || fail "npm install failed"
+npm install --no-audit --no-fund "$WORK/$TARBALL" >"$WORK/install.log" 2>&1 || {
+  cat "$WORK/install.log" >&2
+  fail "npm install failed"
+}
+
+CLI="./node_modules/.bin/avengers-12"
+[[ -x "$CLI" ]] || fail "npm install did not produce $CLI"
 
 say "init"
-npx avengers-12 init >/dev/null || fail "init failed"
+"$CLI" init >/dev/null || fail "init failed"
 for want in avengers-12/config.yml avengers-12/lib/doctor.sh avengers-12/rules/constraints.md \
             .github/workflows/loop.yml .claude/agents/loop-implementer.md; do
   [[ -e "$want" ]] || fail "init did not produce $want"
@@ -62,11 +75,11 @@ done
 [[ -x avengers-12/lib/doctor.sh ]] || fail "init lost the executable bit"
 
 say "doctor passes on an untouched install"
-npx avengers-12 doctor || fail "doctor failed on a fresh install"
+"$CLI" doctor || fail "doctor failed on a fresh install"
 
 say "init is idempotent and never eats your config"
 echo "# my edit" >> avengers-12/config.yml
-npx avengers-12 init --force >/dev/null || fail "second init failed"
+"$CLI" init --force >/dev/null || fail "second init failed"
 grep -q "# my edit" avengers-12/config.yml || fail "init --force destroyed config.yml"
 
 say "the harness runs the scratch project's own build"
