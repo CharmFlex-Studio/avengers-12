@@ -14,10 +14,9 @@
   "author": "CharmFlex-Studio",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CharmFlex-Studio/avengers-12.git",
-    "directory": "avengers-12"
+    "url": "git+https://github.com/CharmFlex-Studio/avengers-12.git"
   },
-  "homepage": "https://github.com/CharmFlex-Studio/avengers-12/tree/main/avengers-12#readme",
+  "homepage": "https://github.com/CharmFlex-Studio/avengers-12#readme",
   "bugs": {
     "url": "https://github.com/CharmFlex-Studio/avengers-12/issues"
   },
@@ -41,6 +40,6 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "bash lib/doctor.sh"
+    "test": "bash test/install.sh"
   }
 }

@@ -26,9 +26,14 @@ installed into your project — `init` copies files, and `node_modules` is not n
 run time.
 
 **Status: 0.1.0.** The logic is bash and python, not Node; npm is how it reaches your
-repository, not what runs it. It has been used in anger on one Gradle project and tested
-end to end on one Node project. Treat the config format as stable and everything else as
-early.
+repository, not what runs it. It has been used in anger on one Gradle project and is tested
+on every commit against a scratch Node project (`npm test`). Treat the config format as
+stable and everything else as early.
+
+**Extracted from a real repository, not written as a library.** That is the main reason to
+trust it and the main thing to watch: it does the things one project actually needed, and
+`test/install.sh` exists specifically to catch the parts of that project that tried to come
+along.
 
 ## Layout
 

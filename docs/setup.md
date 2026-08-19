@@ -6,17 +6,19 @@ them for you. Budget about twenty minutes.
 Until this is done the workflows exist but every run fails at the first step, which is the
 intended behaviour — the harness fails closed.
 
-> **This guide is a worked example, not a template.** It walks through the real setup of
-> `CharmFlex-Studio/avengers-12`, because a walkthrough with placeholders in it is one you
-> cannot check your own screen against. Substitute your own organisation, repository and
-> board wherever those names appear. Everything else — the permissions, the order, the
-> tests at the end — is the same for any project.
+> **Two placeholders run through this guide.** `YOUR-ORG` is whoever owns the repository —
+> an organisation, or your own username. `YOUR-REPO` is the repository itself. Every other
+> name, path and setting is literal: type it exactly as written.
+>
+> The org-owned case is spelled out in full because it is where people get stuck. If you
+> own the repository personally, read `YOUR-ORG` as your username and skip the approval
+> step in section 3.
 
 ---
 
 ## 1. Install the Claude GitHub App
 
-<https://github.com/apps/claude> → install on `CharmFlex-Studio/avengers-12`.
+<https://github.com/apps/claude> → install on `YOUR-ORG/YOUR-REPO`.
 
 You need admin on the repo. The app's permission set is all-or-nothing; the loop uses
 Contents, Issues and Pull requests.
@@ -38,12 +40,13 @@ to whoever ran the command.
 Projects v2 is invisible to both `GITHUB_TOKEN` and the Claude GitHub App, so the board
 needs its own credential.
 
-**This repository belongs to the `CharmFlex-Studio` organisation**, which changes three
-things people usually get wrong. Settings → Developer settings → Personal access tokens →
+**If the repository belongs to an organisation**, three things change that people usually
+get wrong. (Personally-owned repository? Read `YOUR-ORG` as your username, and the approval
+step at the end of this section does not apply to you.) Settings → Developer settings → Personal access tokens →
 **Fine-grained tokens** → Generate:
 
-- **Resource owner: `CharmFlex-Studio`** — the organisation, *not* your personal account.
-  A token owned by your account cannot see org repos at all, no matter its permissions.
+- **Resource owner: `YOUR-ORG`** — the organisation, *not* your personal account. A token
+  owned by your account cannot see org repos at all, no matter its permissions.
 - **Repository access**: only `YOUR-REPO`
 - **Organisation permissions** → **Projects: Read and write** — for an org-owned board this
   is the right place. The *Account*-level Projects permission covers only boards you own
@@ -54,7 +57,7 @@ things people usually get wrong. Settings → Developer settings → Personal ac
 Then the step that has no equivalent for personal repos:
 
 > **An org owner must approve the token.**
-> `CharmFlex-Studio` → Settings → Personal access tokens → Pending requests.
+> `YOUR-ORG` → Settings → Personal access tokens → Pending requests.
 >
 > Until approved, the token authenticates perfectly and sees nothing. That combination is
 > what produces `Invalid username or token` at push time even though everything else in the
@@ -103,10 +106,11 @@ github.com/orgs/<owner>/projects/<number>    ->  LOOP_PROJECT_OWNER = <owner>  (
 github.com/users/<owner>/projects/<number>   ->  LOOP_PROJECT_OWNER = <owner>  (a person)
 ```
 
-For this repository the board should be **org-owned**, so you want the `/orgs/` form with
-`CharmFlex-Studio` as the owner. Step 3's fine-grained PAT is scoped to exactly one resource
-owner, so a personal board plus an org repo cannot both be reached by one token — if your
-URL says `/users/`, either transfer the board to the organisation or accept label-only mode.
+The board's owner and the repository's owner must be **the same**. Step 3's fine-grained
+PAT is scoped to exactly one resource owner, so a personal board plus an org repo cannot
+both be reached by one token. If your board URL says `/users/` and your repository belongs
+to an org, either transfer the board to the organisation or accept label-only mode
+(`board.optional: true`, which is the shipped default).
 
 ## 5. Repository variables
 
@@ -115,7 +119,7 @@ Settings → Secrets and variables → Actions → **Variables** tab:
 | Variable | Value |
 |---|---|
 | `LOOP_PROJECT_NUMBER` | the number from step 4 |
-| `LOOP_PROJECT_OWNER` | **`CharmFlex-Studio`** — the owner of the *board*, which for an org-owned board is the org, not your username. Read it off the board's URL, as in step 4. |
+| `LOOP_PROJECT_OWNER` | `YOUR-ORG` — the owner of the *board*, which for an org-owned board is the org, not your username. Read it off the board's URL, as in step 4. |
 | `LOOP_PAUSE_ALL` | `false` — set to `true` to stop every loop instantly |
 | `LOOP_MAX_RUNS_PER_DAY` | optional. Leave it unset and `budget.maxRunsPerDay` in `avengers-12/config.yml` applies. Set it only to override the config for a while. |
 | `LOOP_BOARD_OPTIONAL` | optional. Leave it unset and `board.optional` in `avengers-12/config.yml` applies, which ships as `true`. Set `board.optional: false` once the board resolves, so a board that breaks later fails loudly instead of silently degrading to label-only ordering. |
