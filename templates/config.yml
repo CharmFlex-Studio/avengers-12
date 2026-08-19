@@ -133,6 +133,12 @@ seed:
 # --- the board --------------------------------------------------------------
 # Column names must match your GitHub Project exactly. `optional: true` lets the
 # loop run on labels alone, which is the right setting until a board resolves.
+#
+# NOTE: a new GitHub Project has only Todo, In Progress and Done. `In Review` and
+# `Blocked` do not exist until you add them to the Status field by hand. Until
+# then, cards simply stop moving once they leave In Progress -- no error, because
+# a board is a tracking surface and must never fail a run. `doctor` names any
+# column listed here that your board does not have.
 board:
   optional: true
   statusField: Status

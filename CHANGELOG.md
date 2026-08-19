@@ -2,6 +2,16 @@
 
 ## 0.2.2 — 2026-08-19
 
+- The board setup shipped a default that does not match GitHub's. `board.columns`
+  names five lanes; a new GitHub Project has three. `In Review` and `Blocked` had
+  to be added by hand, the docs said so in prose halfway down a long section, and
+  the failure was a warning in a job log. So a new board would move cards to In
+  Progress and then stop, with nothing turning red. It is now stated in
+  `templates/config.yml` next to the five names, at the top of the board section
+  of `docs/setup.md`, and by `check-board.sh`, which prints the click-path and
+  says plainly that this is expected on a new board rather than something you got
+  wrong.
+
 - Fixed: `sync-board.sh` read its issue list on stdin while shelling out to `gh`
   on every iteration. Anything inside that reads stdin swallows the rest of the
   queue, so the loop would reconcile the first issue and stop — silently, looking

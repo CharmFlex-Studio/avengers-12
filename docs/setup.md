@@ -75,12 +75,25 @@ wrong, in seconds, before a Claude run is spent.
 
 ## 4. The board
 
-Create or confirm a Projects v2 board with a **Status** single-select field whose options
-are exactly:
+Create a Projects v2 board, then **add two columns to it**.
+
+> **A new GitHub Project gives you three: `Todo`, `In Progress`, `Done`.**
+> The loop needs five. You have to add `In Review` and `Blocked` by hand — GitHub
+> has no way to ship them and this harness will not edit your board for you.
+>
+> Click any card → the **Status** field → **Edit options** → **New option**.
+
+The full set, and the names must match exactly:
 
 ```
 Todo · In Progress · In Review · Blocked · Done
 ```
+
+Skipping this is the single most common way to end up with a board that looks broken:
+cards reach In Progress and then stop, because the next two lanes do not exist. Nothing
+turns red — a missing lane is a warning, not a failure, because a tracking surface must
+never fail a run that is otherwise fine. `npx avengers-12 doctor` names any that are
+missing.
 
 The names must match — `avengers-12/lib/board.sh` looks them up by name and warns (rather than
 fails) when it can't find them, so a typo shows up as cards that never move. **Blocked** is

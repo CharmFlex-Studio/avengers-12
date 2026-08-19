@@ -120,9 +120,18 @@ if [[ -n "$MISSING" ]]; then
   # through them, so it joins with ',' then ' ' alternately. jq does it properly.
   say "    The board has: $(printf '%s' "$OPTIONS" | jq -R . | jq -rs 'join(", ")')"
   say ""
-  say "    Add the missing options to the '$BOARD_STATUS_FIELD' field, or rename"
-  say "    them in $AVENGERS_CONFIG under board.columns. Cards will not move into"
-  say "    a lane that does not exist -- the run stays green and the card stays put."
+  say "    This is expected on a new board, not a mistake you made: a GitHub"
+  say "    Project ships with Todo, In Progress and Done. The other two have to"
+  say "    be added, and until they are, cards cannot reach them -- the run stays"
+  say "    green and the card stays put."
+  say ""
+  say "    To add them:"
+  say "      1. open the board"
+  say "      2. click any card, then the '$BOARD_STATUS_FIELD' field"
+  say "      3. Edit options -> New option, one per missing name above"
+  say ""
+  say "    Or, if your board already calls them something else, rename them in"
+  say "    $AVENGERS_CONFIG under board.columns to match what you use."
 fi
 
 [[ "$PROBLEMS" -eq 0 ]] || exit 1

@@ -94,9 +94,17 @@ and Done.** There is no In Review and no Blocked. The loop then tries to move ca
 two lanes that do not exist — including, at the worst moment, the Blocked lane an
 escalation depends on.
 
+This is not a mistake the owner made. GitHub has no way to ship those two lanes, and this
+harness will not edit anyone's board for them. Say that plainly — someone told "your board
+is missing columns" on day one reasonably assumes they set it up wrong.
+
 Two ways to fix it, and the owner picks:
-- add the missing options to the board's Status field, or
-- rename `board.columns` in `config.yml` to whatever their board already calls them
+- **add the options**: open the board, click any card, click the Status field, Edit options
+  → New option, once per missing name
+- **or rename `board.columns`** in `config.yml` to whatever their board already calls them
+
+Put it on the checklist in section 4 as a browser step, because that is what it is. Do not
+report the board as working until `check-board.sh` is quiet.
 
 ## 3. Labels
 
