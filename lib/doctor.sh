@@ -231,6 +231,22 @@ if [[ -d "$AVENGERS_HOME/templates" ]]; then
     note_problem "templates/ has drifted — run avengers-12/lib/sync-templates.sh"
     bash "$HERE/sync-templates.sh" --check 2>&1 | sed 's/^/      /' >&2 || true
   fi
+
+  # The starter config is hand-written, so it can fall behind this one. Only the
+  # SHAPE is compared -- the values are meant to differ, that is the point of a
+  # template. A key missing here is silent and can be dangerous: leave out
+  # permissions.denyRead and a new project's coder may read .env with every
+  # check still green.
+  TPL_CONFIG="$AVENGERS_HOME/templates/config.yml"
+  if [[ ! -s "$TPL_CONFIG" ]]; then
+    note_problem "no starter config at $TPL_CONFIG"
+  elif python3 "$HERE/check_template_shape.py" "$AVENGERS_CONFIG" "$TPL_CONFIG" >/dev/null 2>&1; then
+    note_ok "templates/config.yml offers every key this config uses"
+  else
+    note_problem "templates/config.yml has drifted from config.yml:"
+    python3 "$HERE/check_template_shape.py" "$AVENGERS_CONFIG" "$TPL_CONFIG" 2>&1 \
+      | sed 's/^/      /' >&2 || true
+  fi
   endgroup
 fi
 
