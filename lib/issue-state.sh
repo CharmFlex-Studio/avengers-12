@@ -65,7 +65,7 @@ issue_last_comment_at() {
     *)     warn "issue_last_comment_at: unknown kind '$kind'"; return 0 ;;
   esac
   issue_comments "$issue" \
-    | jq -r --arg m "$LOOP_MARKER_ANY" "[.[] | $filter] | last | .createdAt // empty" 2>/dev/null \
+    | jq -r --arg m "$LOOP_MARKER_ANY" "[.[] | $filter] | sort_by(.createdAt) | last | .createdAt // empty" 2>/dev/null \
     || true
 }
 
@@ -78,7 +78,7 @@ issue_last_comment_at() {
 issue_last_escalation_at() {
   issue_comments "$1" \
     | jq -r --arg m "$LOOP_MARKER_ESCALATION" \
-        "[.[] | select($LOOP_JQ_UNQUOTED | contains(\$m))] | last | .createdAt // empty" 2>/dev/null \
+        "[.[] | select($LOOP_JQ_UNQUOTED | contains(\$m))] | sort_by(.createdAt) | last | .createdAt // empty" 2>/dev/null \
     || true
 }
 
@@ -93,13 +93,38 @@ issue_last_escalation_at() {
 #   - the newest non-loop comment must be newer than that escalation. ISO8601 UTC
 #     sorts lexicographically, so this is a string comparison and needs no date
 #     parsing on either GNU or BSD.
+# Sets ISSUE_ANSWER_DETAIL to the evidence behind its answer, always. Reporting
+# "this comment is not newer than the last escalation" without the two
+# timestamps is a verdict nobody can check: it looks identical whether the loop
+# asked again after you replied, whether your comment was misfiled, or whether
+# there are no comments at all. Each of those needs a different response from
+# you, and the message was the same for all three.
+ISSUE_ANSWER_DETAIL=""
+
 issue_answered() {
-  local issue="$1" escalated_at answered_at
+  local issue="$1" escalated_at answered_at total
+  ISSUE_ANSWER_DETAIL=""
+
+  total="$(issue_comments "$issue" | jq -r 'length' 2>/dev/null || echo 0)"
   escalated_at="$(issue_last_escalation_at "$issue")"
-  [[ -n "$escalated_at" ]] || return 1
   answered_at="$(issue_last_comment_at "$issue" human)"
-  [[ -n "$answered_at" ]] || return 1
-  [[ "$answered_at" > "$escalated_at" ]]
+
+  ISSUE_ANSWER_DETAIL="$(printf 'comments seen: %s · last escalation: %s · last human comment: %s' \
+    "${total:-0}" "${escalated_at:-none}" "${answered_at:-none}")"
+
+  if [[ -z "$escalated_at" ]]; then
+    ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — no escalation found, so there is no question to answer"
+    return 1
+  fi
+  if [[ -z "$answered_at" ]]; then
+    ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — no comment from a human found at all"
+    return 1
+  fi
+  if [[ ! "$answered_at" > "$escalated_at" ]]; then
+    ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — the loop asked again AFTER your last reply, so it is waiting on a newer answer"
+    return 1
+  fi
+  return 0
 }
 
 # --- pull requests -----------------------------------------------------------
@@ -250,6 +275,7 @@ resume_answered_issues() {
       printf '%s\n' "$issue" >> "$out"
     else
       log "#$issue is blocked and has no answer newer than the last escalation — leaving it"
+      log "   $ISSUE_ANSWER_DETAIL"
     fi
   done < <(
     gh issue list --state open --label "$LOOP_LABEL_BLOCKED" --limit 100 \
