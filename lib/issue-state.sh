@@ -99,28 +99,63 @@ issue_last_escalation_at() {
 # asked again after you replied, whether your comment was misfiled, or whether
 # there are no comments at all. Each of those needs a different response from
 # you, and the message was the same for all three.
+# issue_blocked_at <n> -> ISO8601 of when loop:blocked was last APPLIED
+#
+# Two different things block an issue, and only one of them leaves a comment
+# behind:
+#
+#   escalate.sh  posts <!-- loop-escalation --> and adds the label
+#   triage       adds the label from a verdict, and posts a triage-verdict
+#                comment -- a model is not allowed to escalate on its own
+#
+# So an issue blocked by triage has no escalation at all, and a resume check that
+# looks only for escalations decides there is no question to answer. It then
+# refuses every reply, forever. That is not "your comment was too old"; it is the
+# check asking the wrong question.
+#
+# The label event is the one fact both paths share. Re-adding a label that is
+# already present emits no new event, so this timestamp is stable across runs and
+# cannot drift forward underneath a reply.
+issue_blocked_at() {
+  local issue="$1" repo="${GITHUB_REPOSITORY:-}"
+  [[ -n "$repo" ]] || return 0
+  gh api "repos/${repo}/issues/${issue}/events" --paginate 2>/dev/null \
+    | jq -r --arg l "$LOOP_LABEL_BLOCKED" '
+        [.[] | select(.event == "labeled" and .label.name == $l)]
+        | sort_by(.created_at) | last | .created_at // empty' 2>/dev/null \
+    || true
+}
+
 ISSUE_ANSWER_DETAIL=""
 
 issue_answered() {
-  local issue="$1" escalated_at answered_at total
+  local issue="$1" escalated_at answered_at total blocked_at
   ISSUE_ANSWER_DETAIL=""
 
   total="$(issue_comments "$issue" | jq -r 'length' 2>/dev/null || echo 0)"
   escalated_at="$(issue_last_escalation_at "$issue")"
+  blocked_at="$(issue_blocked_at "$issue")"
   answered_at="$(issue_last_comment_at "$issue" human)"
 
-  ISSUE_ANSWER_DETAIL="$(printf 'comments seen: %s · last escalation: %s · last human comment: %s' \
-    "${total:-0}" "${escalated_at:-none}" "${answered_at:-none}")"
+  # Whichever most recently said "waiting on you". An escalation is a question in
+  # words; the label is a question in state. Both count.
+  local asked_at="$escalated_at"
+  if [[ -z "$asked_at" ]] || { [[ -n "$blocked_at" ]] && [[ "$blocked_at" > "$asked_at" ]]; }; then
+    asked_at="$blocked_at"
+  fi
 
-  if [[ -z "$escalated_at" ]]; then
-    ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — no escalation found, so there is no question to answer"
+  ISSUE_ANSWER_DETAIL="$(printf 'comments seen: %s · blocked at: %s · last escalation: %s · last human comment: %s' \
+    "${total:-0}" "${blocked_at:-unknown}" "${escalated_at:-none}" "${answered_at:-none}")"
+
+  if [[ -z "$asked_at" ]]; then
+    ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — cannot tell when it was blocked, so the reply cannot be dated against anything"
     return 1
   fi
   if [[ -z "$answered_at" ]]; then
     ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — no comment from a human found at all"
     return 1
   fi
-  if [[ ! "$answered_at" > "$escalated_at" ]]; then
+  if [[ ! "$answered_at" > "$asked_at" ]]; then
     ISSUE_ANSWER_DETAIL="$ISSUE_ANSWER_DETAIL — the loop asked again AFTER your last reply, so it is waiting on a newer answer"
     return 1
   fi

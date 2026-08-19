@@ -346,7 +346,14 @@ BASE_SHA="$(git rev-parse HEAD)"
 # this file is the answer to the question the loop actually asked.
 ANSWER_FILE="$LOOP_DIR/answer.md"
 rm -f "$ANSWER_FILE"
+# Same rule as issue_answered: an issue blocked by triage has no escalation, so
+# dating replies from the escalation alone collects nothing and the coder is
+# handed an empty answer.md for a question that was really asked.
 ESCALATED_AT="$(issue_last_escalation_at "$ISSUE")"
+BLOCKED_AT="$(issue_blocked_at "$ISSUE")"
+if [[ -z "$ESCALATED_AT" ]] || { [[ -n "$BLOCKED_AT" ]] && [[ "$BLOCKED_AT" > "$ESCALATED_AT" ]]; }; then
+  ESCALATED_AT="$BLOCKED_AT"
+fi
 if [[ -n "$ESCALATED_AT" ]]; then
   REPLIES="$(
     issue_comments "$ISSUE" \

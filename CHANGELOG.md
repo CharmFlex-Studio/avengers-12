@@ -2,6 +2,16 @@
 
 ## 0.2.2 — 2026-08-19
 
+- Fixed: an issue blocked by **triage** could never be resumed by replying. Two
+  things set `loop:blocked` — `escalate.sh`, which posts an escalation comment,
+  and triage, which sets the label from a verdict because a model is not allowed
+  to escalate on its own. The resume check looked only for escalation comments,
+  found none, and concluded there was no question to answer. It then refused
+  every reply, permanently. Resume now dates replies against whichever came
+  later: the escalation, or the moment the `loop:blocked` label was applied.
+  Re-adding an existing label emits no new event, so that timestamp cannot drift
+  forward underneath a reply.
+
 - Fixed: replying to an escalation with GitHub's **Quote reply** left the issue
   blocked forever. Quote reply copies the raw markdown you are replying to, HTML
   comments included, so the reply contained `<!-- loop-escalation -->`. Two
