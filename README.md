@@ -124,6 +124,11 @@ schedule:
 
 GitHub asks once an hour and skips if it's too soon, so `1` really does mean one hour.
 
+You will still see about 24 entries a day in the Actions tab. That is expected: GitHub
+cannot read `config.yml` when it decides whether to fire, so it fires hourly and the first
+job answers. Judge them by **duration**, not by count — a firing that was too soon ends in
+around fifteen seconds.
+
 Nothing runs until your Claude token is set, so a half-finished setup won't sit there
 failing every day.
 

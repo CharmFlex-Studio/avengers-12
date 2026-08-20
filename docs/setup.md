@@ -310,6 +310,14 @@ schedule:
 GitHub asks once an hour. Most of those checks end in about fifteen seconds because it is
 too soon, and they only look at the `avengers-12/` folder rather than your whole repo.
 
+So the Actions tab shows roughly 24 entries a day whatever you set. Judge them by
+**duration**, not by count. Fifteen seconds means the gate stopped it. If they are running
+for minutes every hour, the timer really is being ignored and something is wrong.
+
+The gate measures from the newest entry in `avengers-12/state/run-log.md`. That means every
+scheduled run past the gate has to write one, including the ones that find an empty queue —
+otherwise the timestamp never moves and every hour looks overdue.
+
 Two things stop a scheduled run before it costs anything:
 
 * No `CLAUDE_CODE_OAUTH_TOKEN` yet, so a repo you installed and never finished setting up

@@ -342,6 +342,28 @@ jobs:
             avengers-12/lib/pick-next.sh
           fi
 
+      # Advance the schedule clock even when there was nothing to do.
+      #
+      # schedule-gate.sh measures "time since the last run" from the newest
+      # entry in the run log, and only the implement job used to write one. A
+      # scheduled firing that found an empty queue therefore left the clock
+      # untouched: the next hour it was still past due, so it started again,
+      # and again, every hour for ever. schedule.everyHours read as though it
+      # were being ignored, because in that state it effectively was — and an
+      # empty queue is the normal state of a healthy repository, so this was
+      # the common case rather than the edge case.
+      #
+      # "no-op" is deliberate. preflight.sh counts only pr-opened, escalated,
+      # gate-failed, died and failed against budget.maxRunsPerDay, so this
+      # entry moves the timer without spending a run.
+      - name: Record an empty scheduled run
+        if: always() && github.event_name == 'schedule' && steps.pick.outputs.issue == ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
+          LOOP_PATTERN: triage
+        run: avengers-12/lib/append-run-log.sh "no-op" "reason=empty-queue"
+
   # ------------------------------------------------------------- implement ---
   implement:
     name: "Implement #${{ needs.triage.outputs.issue }}"

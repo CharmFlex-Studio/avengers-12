@@ -40,6 +40,14 @@ fi
 
 # The last run of any kind, from the run log. An entry is written whenever a run
 # reaches an outcome, so this is the same record the daily cap counts.
+#
+# This is a clock that something else has to wind. EVERY scheduled firing that
+# gets past this gate must end with an entry here, including the ones that find
+# an empty queue and do nothing — the workflow's "Record an empty scheduled run"
+# step exists for exactly that. Without it the newest timestamp never moves, the
+# comparison below stays true for ever, and the loop starts a full run every
+# hour while schedule.everyHours appears to be ignored. An empty queue is the
+# normal state of a healthy repository, so that is the common case, not an edge.
 LAST=""
 if [[ -f "$LOOP_RUN_LOG" ]]; then
   LAST="$(grep -oE '"run_id":"[0-9TZ:.-]+"' "$LOOP_RUN_LOG" 2>/dev/null \

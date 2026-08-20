@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.3 — 2026-08-20 *(not published)*
+
+- **`schedule.everyHours` was ignored whenever the queue was empty.** The gate
+  measures time from the newest entry in `state/run-log.md`, but only the
+  implement job ever wrote one. A scheduled run that found nothing to do left
+  the timestamp untouched, so the next hour it was still past due — and the loop
+  started a full run every hour, for ever. An empty queue is the normal state of
+  a healthy repository, so this was the common case, not an edge case.
+
+  The triage job now records a `no-op` entry when a scheduled run picks no
+  issue, which winds the clock. `preflight.sh` does not count `no-op` against
+  `budget.maxRunsPerDay`, so an empty run still costs you nothing.
+
+  Symptom to check: hourly runs in the Actions tab are normal — the cron fires
+  every hour by design and the gate stops most of them in about fifteen seconds.
+  It is the *duration* that tells you. Minutes, not seconds, means this bug.
+
+- `lib/schedule-gate.sh` now says out loud that its clock has to be wound by
+  something else, so the next person cannot delete the step that winds it.
+
 ## 0.7.2 — 2026-08-20 *(not published)*
 
 - `soul.readNotes` caps how many earlier notes a run may open. 0 keeps writing
