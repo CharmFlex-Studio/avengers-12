@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.3 — 2026-08-20
+
+- README cut from 313 lines to 183. Gone: the "what it won't do" section, the
+  config walkthrough, the directory tree, and the paragraphs restating what the
+  tables already said. A README nobody finishes is a README nobody follows.
+  `docs/setup.md`, `rules/constraints.md` and `rules/budget.md` still hold all of
+  it in full.
+
 ## 0.4.2 — 2026-08-20
 
 - README rewritten. Setup is seven numbered steps instead of four with two of

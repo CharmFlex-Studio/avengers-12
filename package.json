@@ -1,6 +1,6 @@
 {
   "name": "avengers-12",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "An autonomous GitHub issue loop for Claude Code: triage a queue, implement one issue, gate the diff, open a draft PR \u2014 all driven by one config file.",
   "keywords": [
     "claude",
