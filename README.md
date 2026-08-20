@@ -218,6 +218,26 @@ houseRules:
 If you have a file that says "in this project we always do X", put it here. The coder reads
 it every run, and the reviewer will reject a change that ignores it.
 
+## The soul folder
+
+When a change involved a real decision, the coder leaves a short note at
+`soul/issue-42.md` on its branch. It arrives in the pull request, so you review the
+reasoning next to the code, and merging puts it in your repo.
+
+It only covers what a diff cannot tell you:
+
+```markdown
+## Why this way
+## Considered and rejected
+## Still uncertain
+## Noticed, not fixed
+```
+
+No note is written when there is nothing to say, so a colour change leaves nothing behind.
+A run can only write its own file, never another issue's.
+
+Turn it off with `soul: { directory: "" }` in the config.
+
 ## Commands
 
 ```bash
@@ -231,7 +251,7 @@ where they are.
 
 ## Status
 
-Version 0.6.1. Still early.
+Version 0.7.0. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.

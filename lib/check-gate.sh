@@ -62,6 +62,21 @@ fi
 cat "$CHANGED_FILE" >&2
 endgroup
 
+# --- the soul folder ---------------------------------------------------------
+# A run may write its OWN note and nothing else in there. Without this, a run
+# could quietly rewrite what an earlier one recorded, and a folder you keep in
+# order to trust it is no use if anything can edit any of it.
+SOUL_DIR="$(cfg soul.directory "")"
+if [[ -n "$SOUL_DIR" && -n "${ISSUE:-}" ]]; then
+  STRAY="$(grep -E "^${SOUL_DIR}/" "$CHANGED_FILE" 2>/dev/null \
+           | grep -vxF "${SOUL_DIR}/issue-${ISSUE}.md" || true)"
+  if [[ -n "$STRAY" ]]; then
+    problem "this run touched notes belonging to other issues:"
+    printf '%s\n' "$STRAY" | sed 's/^/  /' >&2
+    die "a run may only write ${SOUL_DIR}/issue-${ISSUE}.md"
+  fi
+fi
+
 set +e
 VIOLATIONS="$(python3 "$HERE/gate_check.py" "$LOOP_GATE_FILE" "$CHANGED_FILE")"
 STATUS=$?

@@ -129,6 +129,22 @@ permissions:
 review:
   agent: ""
 
+# --- the soul folder --------------------------------------------------------
+# A short note per issue, kept next to the code, about things the diff cannot
+# tell you: why this approach, what was rejected, what is still uncertain, what
+# was noticed and left alone.
+#
+# The coder writes soul/issue-<N>.md on its branch, so the note arrives in the
+# pull request and you review the reasoning with the change. Merge the PR and it
+# lands in your repo. Abandon it and nothing is left behind.
+#
+# Nothing is written when there is nothing to say. A colour change leaves no
+# file.
+#
+# Set to "" to turn it off.
+soul:
+  directory: soul
+
 # --- house rules ------------------------------------------------------------
 # Markdown files the coder must read before it writes anything.
 #

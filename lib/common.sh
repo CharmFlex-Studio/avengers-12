@@ -49,16 +49,27 @@ avengers_load_config() {
   # reported that a config it had just been handed was fine. A cache with no
   # invalidation is a cache that lies, and this one lies about the denylist.
   # `-nt` is a bash builtin and behaves the same on macOS and Linux.
-  if [[ -s "$_AVENGERS_CONFIG_JSON" && ! "$AVENGERS_CONFIG" -nt "$_AVENGERS_CONFIG_JSON" ]]; then
+  # The cache is only good for the file it came from. Comparing mtimes alone
+  # meant that pointing AVENGERS_CONFIG at a different file silently reused the
+  # previous parse, so a script would answer questions about a config it had
+  # never read. That cannot happen in a workflow, where a job has one config, but
+  # it happens constantly when testing by hand -- which is exactly when a wrong
+  # answer is most likely to be believed.
+  local stamp="$LOOP_DIR/config.source"
+  if [[ -s "$_AVENGERS_CONFIG_JSON" && -s "$stamp" ]] \
+     && [[ "$(cat "$stamp" 2>/dev/null)" == "$AVENGERS_CONFIG" ]] \
+     && [[ ! "$AVENGERS_CONFIG" -nt "$_AVENGERS_CONFIG_JSON" ]]; then
     return 0
   fi
   mkdir -p "$LOOP_DIR"
   if ! python3 "$AVENGERS_HOME/lib/config.py" "$AVENGERS_CONFIG" > "$_AVENGERS_CONFIG_JSON" 2>"$LOOP_DIR/config.err"; then
     rm -f "$_AVENGERS_CONFIG_JSON"
+    rm -f "$LOOP_DIR/config.source"
     printf '[loop] FATAL: cannot read %s\n' "$AVENGERS_CONFIG" >&2
     sed 's/^/  /' "$LOOP_DIR/config.err" >&2 || true
     exit 1
   fi
+  printf '%s' "$AVENGERS_CONFIG" > "$LOOP_DIR/config.source"
   return 0
 }
 

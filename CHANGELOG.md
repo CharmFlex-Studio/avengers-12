@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.7.0 — 2026-08-20 *(not published)*
+
+- **The soul folder.** When a change involved a real decision, the coder leaves a
+  short note at `soul/issue-<N>.md` on its branch: why this approach, what was
+  rejected, what is still uncertain, what it noticed and left alone. It arrives
+  in the pull request and lands in your repo when you merge. Nothing is written
+  when there is nothing to say. A run can only write its own file; touching
+  another issue's fails the gate. Off with `soul: { directory: "" }`.
+- Fixed: the parsed-config cache only checked the file time, so pointing
+  `AVENGERS_CONFIG` at a different file reused the previous parse. Harmless in a
+  workflow, where a job has one config. It bit me twice while testing by hand,
+  which is where a wrong answer is most likely to be believed.
+
 ## 0.6.1 — 2026-08-20 *(not published)*
 
 - **A fresh install failed `doctor`.** The starter config listed `AGENTS.md` and

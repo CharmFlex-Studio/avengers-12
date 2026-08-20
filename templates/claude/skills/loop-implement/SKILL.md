@@ -117,6 +117,11 @@ before editing" and nothing more — the coder reads the files themselves.>
 `tests.directory`, and `.loop/changes.md` written. Name `tests.example` in full — the
 coder reads it for the house style and cannot guess the path.>
 
+## The note
+<When soul.directory is set in avengers-12/config.yml, name the exact path:
+<dir>/issue-<N>.md. Say it is optional, and that most changes do not need one. When it is
+unset, omit this section entirely.>
+
 ## Output
 Write .loop/changes.md. Do not commit. Do not push.
 ```
@@ -256,6 +261,9 @@ Closes #<N>
 ## Verification
 - Verifier: APPROVE (<files> files changed, tests green)
 - `avengers-12/lib/verify.sh` — <name the verify steps that ran and their result>
+
+<If the coder left a note at soul.directory/issue-N.md, add one line linking to it:
+"Notes on this change: `soul/issue-N.md`". If it did not, say nothing.>
 
 ## Advisory review
 <contents of .loop/review.md, or "none">

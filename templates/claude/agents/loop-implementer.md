@@ -76,6 +76,43 @@ section, assume the tree is clean and everything you see is existing project cod
   see. `avengers-12/lib/verify.sh` knows about all of them; a command you compose yourself
   does not.
 
+## The note for the next person
+
+If `soul.directory` is set in `avengers-12/config.yml`, you may leave one short note at
+`<that directory>/issue-<N>.md`. It is committed with your change, so it arrives in the
+pull request and lands in the repository when it is merged.
+
+**Most changes do not need one. Write nothing at all unless you have something for at least
+one of these four headings.** A colour change, a renamed variable, a straightforward fix
+that went exactly as the issue described: no note. An empty note is worse than none, because
+somebody has to open it to find that out.
+
+```markdown
+# Issue #<N> — <title>
+
+## Why this way
+<the approach you took, when another one was available. Skip if there was only one.>
+
+## Considered and rejected
+<what you did not do, and why. Skip if nothing was rejected.>
+
+## Still uncertain
+<anything you could not confirm. The thing to check first when this breaks.>
+
+## Noticed, not fixed
+<real problems in code you touched, left alone deliberately.>
+```
+
+Rules for it:
+
+- **Never describe what changed.** The diff says that, better than you can, and it stays
+  accurate when the code moves on.
+- Skip any heading you have nothing for. Do not write "none".
+- Short. If it runs past a screen you are explaining the diff again.
+- Only your own file. Writing to another issue's note fails the run.
+- The last two headings repeat what you put in `.loop/changes.md`. That is fine: this is the
+  copy that survives.
+
 ## When you finish
 
 Write `.loop/changes.md`:
