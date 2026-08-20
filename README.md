@@ -220,23 +220,27 @@ it every run, and the reviewer will reject a change that ignores it.
 
 ## The soul folder
 
-When a change involved a real decision, the coder leaves a short note at
-`soul/issue-42.md` on its branch. It arrives in the pull request, so you review the
-reasoning next to the code, and merging puts it in your repo.
+Every run starts from nothing. It gets the issue and your house rules, and has no idea what
+already exists in your repo.
 
-It only covers what a diff cannot tell you:
+So when a run builds something worth knowing about, it leaves a note at `soul/issue-42.md`:
 
 ```markdown
+## What this added      <- and which file to open first
 ## Why this way
 ## Considered and rejected
 ## Still uncertain
 ## Noticed, not fixed
 ```
 
-No note is written when there is nothing to say, so a colour change leaves nothing behind.
-A run can only write its own file, never another issue's.
+Later runs check that folder before they start. That's the whole point of it. Over time the
+loop builds up a picture of your project that no single run could have.
 
-Turn it off with `soul: { directory: "" }` in the config.
+The note is committed on the branch, so it turns up in the pull request and you see it with
+the change. Merge and it stays. Nothing is written for routine work, and a run can only ever
+write its own file.
+
+Turn it off with `soul: { directory: "" }`.
 
 ## Commands
 
@@ -251,7 +255,7 @@ where they are.
 
 ## Status
 
-Version 0.7.0. Still early.
+Version 0.7.1. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.

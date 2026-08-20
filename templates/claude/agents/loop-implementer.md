@@ -34,7 +34,18 @@ section, assume the tree is clean and everything you see is existing project cod
    whatever this codebase has decided — and they are the only place those rules are written
    down. The brief names them too; read them from the config so you cannot be working from
    a stale list. For you this is not optional: the verifier rejects on them.
-3. Restate the acceptance criteria to yourself. If you cannot say concretely what "done"
+3. If `soul.directory` is set, look there before you write anything:
+
+   ```bash
+   ls soul/ 2>/dev/null && grep -ril "<a word from the issue>" soul/ 2>/dev/null
+   ```
+
+   Those are notes left by earlier runs about what exists in this repository and why. You
+   start cold and the code cannot tell you what was already tried, rejected, or left
+   half-done. Read any that look related. If the folder is empty or nothing matches, move on;
+   this costs one command.
+
+4. Restate the acceptance criteria to yourself. If you cannot say concretely what "done"
    looks like, write `.loop/blocked.md` explaining exactly what is ambiguous and stop —
    do not guess. A guess costs a whole verify cycle to discover.
 
@@ -76,28 +87,34 @@ section, assume the tree is clean and everything you see is existing project cod
   see. `avengers-12/lib/verify.sh` knows about all of them; a command you compose yourself
   does not.
 
-## The note for the next person
+## The note you leave behind
 
-If `soul.directory` is set in `avengers-12/config.yml`, you may leave one short note at
+If `soul.directory` is set in `avengers-12/config.yml`, leave one short note at
 `<that directory>/issue-<N>.md`. It is committed with your change, so it arrives in the
 pull request and lands in the repository when it is merged.
 
-**Most changes do not need one. Write nothing at all unless you have something for at least
-one of these four headings.** A colour change, a renamed variable, a straightforward fix
-that went exactly as the issue described: no note. An empty note is worse than none, because
-somebody has to open it to find that out.
+**Who it is for: the next agent, not the reviewer.** Somebody in your position three months
+from now, starting cold on a related issue, with no idea this feature exists. The reviewer
+has the diff. Your successor has nothing.
+
+Write one when you added or changed a feature, or hit something a future run would waste
+time rediscovering. Skip it for a colour change, a rename, or a fix that went exactly as the
+issue described. An empty note is worse than none: somebody has to open it to find that out.
 
 ```markdown
 # Issue #<N> — <title>
 
+## What this added
+<one or two lines. What the feature does, and the file to open first.>
+
 ## Why this way
-<the approach you took, when another one was available. Skip if there was only one.>
+<the approach taken, when another was available. Skip if there was only one.>
 
 ## Considered and rejected
-<what you did not do, and why. Skip if nothing was rejected.>
+<what you did not do, and why. Stops the next run re-litigating it.>
 
 ## Still uncertain
-<anything you could not confirm. The thing to check first when this breaks.>
+<what you could not confirm. The first thing to check when this breaks.>
 
 ## Noticed, not fixed
 <real problems in code you touched, left alone deliberately.>
@@ -105,13 +122,13 @@ somebody has to open it to find that out.
 
 Rules for it:
 
-- **Never describe what changed.** The diff says that, better than you can, and it stays
-  accurate when the code moves on.
+- **Name the entry point, do not explain how it works.** "Lookup lives in
+  `EnglishDictionarySearchService.kt`" survives a refactor as a starting point. A paragraph
+  describing the flow is wrong the first time somebody changes it, and wrong confidently.
+- **Never list what changed.** That is the diff, and the diff stays accurate.
 - Skip any heading you have nothing for. Do not write "none".
-- Short. If it runs past a screen you are explaining the diff again.
+- Short. Past a screen and you are describing the code again.
 - Only your own file. Writing to another issue's note fails the run.
-- The last two headings repeat what you put in `.loop/changes.md`. That is fine: this is the
-  copy that survives.
 
 ## When you finish
 

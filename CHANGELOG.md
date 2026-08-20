@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.1 — 2026-08-20 *(not published)*
+
+- The soul folder is now read as well as written. A run greps it for words from
+  the issue before it starts, and the orchestrator lists any matching notes in
+  the brief. Writing a memory nothing reads was half a feature.
+- Notes gained a **What this added** heading naming the feature and the file to
+  open first. The other headings explain decisions, which helps a reviewer; this
+  one tells the next run what already exists, which is what it actually lacks.
+
 ## 0.7.0 — 2026-08-20 *(not published)*
 
 - **The soul folder.** When a change involved a real decision, the coder leaves a

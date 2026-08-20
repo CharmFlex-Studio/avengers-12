@@ -117,10 +117,20 @@ before editing" and nothing more — the coder reads the files themselves.>
 `tests.directory`, and `.loop/changes.md` written. Name `tests.example` in full — the
 coder reads it for the house style and cannot guess the path.>
 
-## The note
-<When soul.directory is set in avengers-12/config.yml, name the exact path:
-<dir>/issue-<N>.md. Say it is optional, and that most changes do not need one. When it is
-unset, omit this section entirely.>
+## What earlier runs left about this area
+<When soul.directory is set, grep it for words from the issue title and body:
+`grep -ril "<term>" soul/`. List any matching files by path, one per line, and nothing else
+— the coder opens them itself. Omit this section when the folder is empty or nothing
+matches, and when soul.directory is unset.
+
+These are notes from earlier runs about what exists in this repository. The coder starts
+cold, so this is the only way it learns that a feature it is about to build already half
+exists.>
+
+## The note to leave
+<When soul.directory is set, name the exact path: <dir>/issue-<N>.md. Say it is for the next
+agent rather than the reviewer, and that it is skipped when the change is routine. Omit this
+section when soul.directory is unset.>
 
 ## Output
 Write .loop/changes.md. Do not commit. Do not push.

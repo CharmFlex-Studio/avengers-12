@@ -130,16 +130,19 @@ review:
   agent: ""
 
 # --- the soul folder --------------------------------------------------------
-# A short note per issue, kept next to the code, about things the diff cannot
-# tell you: why this approach, what was rejected, what is still uncertain, what
-# was noticed and left alone.
+# The repository's memory, written by the loop, for the loop.
 #
-# The coder writes soul/issue-<N>.md on its branch, so the note arrives in the
-# pull request and you review the reasoning with the change. Merge the PR and it
-# lands in your repo. Abandon it and nothing is left behind.
+# Every run starts cold. It gets the issue and your house rules, and knows
+# nothing about what already exists here. So when a run builds something worth
+# knowing about, it leaves a short note at soul/issue-<N>.md: what the feature
+# does, which file to open first, why it was done that way, and anything it could
+# not confirm. Later runs read the folder before they start.
 #
-# Nothing is written when there is nothing to say. A colour change leaves no
-# file.
+# The note is committed on the branch, so it arrives in the pull request and you
+# see it with the change. Merge and it stays. Abandon the branch and nothing is
+# left behind.
+#
+# Nothing is written for routine work. A colour change leaves no file.
 #
 # Set to "" to turn it off.
 soul:
