@@ -56,8 +56,10 @@ git config user.email "test@example.invalid"
 git commit -q --allow-empty -m init
 printf '{"name":"scratch","version":"1.0.0","scripts":{"test":"node -e 0"}}\n' > package.json
 printf 'console.log("ok");\n' > test/example.test.js
-printf '# House rules\n' > AGENTS.md
-printf '# Claude notes\n' > CLAUDE.md
+# Deliberately NOT creating AGENTS.md or CLAUDE.md. Most projects do not have
+# them, and creating them here is what hid a bug where a fresh install failed
+# doctor because the starter config named files that were not there. A test that
+# tidies up before checking is not checking.
 npm install --no-audit --no-fund "$WORK/$TARBALL" >"$WORK/install.log" 2>&1 || {
   cat "$WORK/install.log" >&2
   fail "npm install failed"

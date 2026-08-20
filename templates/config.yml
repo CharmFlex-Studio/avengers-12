@@ -130,13 +130,21 @@ review:
   agent: ""
 
 # --- house rules ------------------------------------------------------------
-# Project documents every agent must read before editing. They hold the standing
-# rules of your codebase and they are the only place those rules are written
-# down. Every entry must also be on the gate denylist above, or a run can edit
-# the rules it is judged against.
-houseRules:
-  - AGENTS.md
-  - CLAUDE.md
+# Markdown files the coder must read before it writes anything.
+#
+# If your project has a document saying "we always do X", put it here. Coding
+# style, folder layout, naming, how you handle errors, anything you would tell a
+# new joiner on day one. The coder reads them top to bottom, so put the general
+# ones first.
+#
+# Common names, if you have them:
+#   AGENTS.md · CLAUDE.md · CONTRIBUTING.md · ARCHITECTURE.md · BEST_PRACTICES.md
+#
+# Leave it empty if you have none. That is fine and quite normal.
+#
+# Anything you list here should also be under gate.deny above, so a run can read
+# your rules but never rewrite them.
+houseRules: []
 
 # --- one-time bootstrap -----------------------------------------------------
 # Markdown files avengers-12/lib/seed-board.sh reads to turn existing `- [ ]`

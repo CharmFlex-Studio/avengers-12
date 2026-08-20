@@ -63,6 +63,13 @@ its first test. Pick a small, clear one, not the biggest.
 **`permissions.allowBash`** — the build and test commands the coder is allowed to run.
 Match the tools in `verify`.
 
+**`houseRules`** — documents the coder reads before writing anything. Look for files that
+say how this project does things: `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`,
+`ARCHITECTURE.md`, `BEST_PRACTICES.md`, a `docs/` style guide, anything similar. **Only
+list files that actually exist** — a name that is not there fails `doctor`, and the coder is
+told to read something it cannot find. Empty is a perfectly good answer; say so rather than
+inventing a file. Whatever you list, add to `gate.deny` too.
+
 Also set `runtime.java` if this is a JVM project, and leave it out if not — the JDK setup
 step is skipped when it is unset.
 

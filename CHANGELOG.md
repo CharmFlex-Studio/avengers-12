@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.1 — 2026-08-20 *(not published)*
+
+- **A fresh install failed `doctor`.** The starter config listed `AGENTS.md` and
+  `CLAUDE.md` under `houseRules`, and most projects have neither. It now ships
+  empty, and empty is a valid answer rather than a fault.
+- `houseRules` is explained in the README and in plain words in the config,
+  instead of only being named. It is the list of documents the coder reads before
+  it writes anything.
+- The install test created `AGENTS.md` and `CLAUDE.md` before checking, which is
+  exactly why it never caught this. It no longer does.
+
 ## 0.6.0 — 2026-08-20 *(not published)*
 
 - **The timer is on by default, at once a day.** It used to ship off. Set

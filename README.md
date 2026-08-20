@@ -198,13 +198,25 @@ Look at the run summary page first. The logs are a last resort.
 ## Settings
 
 Everything lives in `avengers-12/config.yml`, and every setting has a comment explaining
-it. The one to get right is how your project builds and tests:
+it. Two worth knowing about.
+
+How your project builds and tests:
 
 ```yaml
 verify:
   - name: test
     run: npm test        # your real command here
 ```
+
+And any documents the coder should read before it writes anything:
+
+```yaml
+houseRules:
+  - ARCHITECTURE.md      # empty is fine if you have none
+```
+
+If you have a file that says "in this project we always do X", put it here. The coder reads
+it every run, and the reviewer will reject a change that ignores it.
 
 ## Commands
 
@@ -219,7 +231,7 @@ where they are.
 
 ## Status
 
-Version 0.6.0. Still early.
+Version 0.6.1. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.

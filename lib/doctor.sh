@@ -166,7 +166,7 @@ while IFS= read -r doc; do
   [[ -n "$doc" ]] || continue
   HOUSE_COUNT=$((HOUSE_COUNT + 1))
   if [[ ! -f "$doc" ]]; then
-    note_problem "houseRules names a missing file: $doc — agents are told to read it"
+    note_problem "houseRules names a file that is not here: $doc. Either create it, or take it out of houseRules in $AVENGERS_CONFIG."
     HOUSE_BAD=1
   elif ! python3 "$HERE/gate_check.py" --list-denied "$AVENGERS_CONFIG" <(printf '%s\n' "$doc") \
          | grep -qxF "$doc"; then
@@ -176,7 +176,8 @@ while IFS= read -r doc; do
   fi
 done < <(cfg_list houseRules)
 if [[ "$HOUSE_COUNT" -eq 0 ]]; then
-  note_problem "houseRules is empty — agents would be told to read nothing"
+  # Plenty of projects have no written rules. Saying so is not a fault.
+  note_ok "houseRules is empty — the coder reads no project docs before editing"
 elif [[ "$HOUSE_BAD" -eq 0 ]]; then
   note_ok "$HOUSE_COUNT houseRules file(s) exist and are write-denied"
 fi
