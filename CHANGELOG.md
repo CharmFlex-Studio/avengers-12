@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.4.0 — 2026-08-20
+
+- **A declined resume now answers on the issue**, not only on the run summary.
+  You reply, watch the issue, and previously saw nothing — the explanation sat in
+  the Actions tab, the last place anyone looks after typing a comment. Silence
+  reads as broken. The notice carries the loop's own marker, so it never
+  re-triggers the workflow and is never mistaken for a human answer later, and it
+  is posted once per state rather than once per run.
+- **An organisation is now stated as a prerequisite.** A fine-grained token gets
+  `Projects: Read and write` through *Organisation* permissions, so a personally
+  owned repository can read a board and will never move a card — while every
+  check passes, because every check is a read. Said in the README's requirements
+  table, at the top of the board section of `docs/setup.md`, by `check-board.sh`
+  at the moment it bites, and by `/setup-workflow` before anyone builds a board
+  they cannot drive. Running on labels alone remains fully supported and is the
+  shipped default.
+- `doctor` fails on bash 4+ constructs. macOS ships bash 3.2 and always will, so
+  a `${x^}` passes CI and then breaks on the laptop of whoever runs
+  `check-issue.sh` by hand — a bug that only ever bites a human. One had already
+  crept in.
+- `loop_comment` prints GitHub's error instead of discarding it, like the board
+  writes and the escalation before it.
+
 ## 0.2.3 - 2026-08-20
 
 Enhance harness

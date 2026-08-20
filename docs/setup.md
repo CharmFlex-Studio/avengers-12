@@ -75,6 +75,18 @@ wrong, in seconds, before a Claude run is spent.
 
 ## 4. The board
 
+> **This whole step needs an organisation.** A fine-grained token gets
+> **Projects: Read and write** through *Organisation permissions*, so the repository and the
+> board must both be owned by an org — not by you personally. With a personal repo the token
+> can read the board and will never move a card, and every check in this harness passes
+> because every one of them is a read.
+>
+> Free, one minute: <https://github.com/account/organizations/new>. Then transfer the repo
+> into the org and create the board under the org.
+>
+> **Not worth it for you?** Skip this section. `board.optional: true` is the default and the
+> loop runs on labels alone — the same behaviour, tracked on the issues list.
+
 Create a Projects v2 board, then **add two columns to it**.
 
 > **A new GitHub Project gives you three: `Todo`, `In Progress`, `Done`.**

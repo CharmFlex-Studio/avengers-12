@@ -322,10 +322,12 @@ loop_comment() {
   local issue="$1" body_file="$2" tmp
   tmp="$(mktemp)"
   { printf '%s\n' "$LOOP_MARKER_NOTICE"; cat "$body_file"; } > "$tmp"
-  if gh issue comment "$issue" --body-file "$tmp" >/dev/null 2>&1; then
+  local err
+  if err="$(gh issue comment "$issue" --body-file "$tmp" 2>&1 >/dev/null)"; then
     log "commented on #$issue"
   else
     warn "could not comment on #$issue"
+    [[ -n "$err" ]] && printf '  GitHub said: %s\n' "$err" >&2
   fi
   rm -f "$tmp"
   return 0

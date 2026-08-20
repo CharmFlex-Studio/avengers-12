@@ -291,6 +291,25 @@ fi
 endgroup
 
 # --- 5. every script the harness calls is present and parses -----------------
+# --- 4h. nothing here may need bash 4 ----------------------------------------
+# macOS ships bash 3.2 and always will — Apple froze it at the last GPLv2
+# release. The runner has bash 5, so a bash-4 construct passes CI and then fails
+# on the laptop of whoever runs check-issue.sh or doctor.sh by hand. That is a
+# bug that only ever bites a human, never a machine, which is the worst place to
+# put one.
+group "Runs on macOS bash 3.2"
+# The patterns live in lib/bashisms.grep, not here. Written inline, this check
+# matched its own source and reported itself — a checker that cannot be run over
+# its own directory is not much of a checker.
+BASHISMS="$(grep -nEf "$HERE/bashisms.grep" "$HERE"/*.sh 2>/dev/null || true)"
+if [[ -n "$BASHISMS" ]]; then
+  note_problem "these need bash 4+, which macOS does not have:"
+  printf '%s\n' "$BASHISMS" | sed 's/^/      /' >&2
+else
+  note_ok "no bash 4+ constructs (macOS ships 3.2 and always will)"
+fi
+endgroup
+
 group "Scripts"
 BAD=0
 for script in "$HERE"/*.sh; do

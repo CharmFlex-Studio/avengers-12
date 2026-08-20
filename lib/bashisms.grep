@@ -1,0 +1,4 @@
+\$\{[A-Za-z_][A-Za-z0-9_]*\^\^?\}
+\$\{[A-Za-z_][A-Za-z0-9_]*,,?\}
+declare -A
+^[[:space:]]*(mapfile|readarray)[[:space:]]

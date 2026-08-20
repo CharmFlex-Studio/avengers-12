@@ -147,6 +147,16 @@ fi
 # a human pressing a button on purpose, so it must be able to decline quietly:
 # every comment on a blocked issue reaches here, and only some of them are the
 # answer the loop was waiting for.
+# True when the newest comment on the issue is already one of our decline
+# notices. Without this, every run would add another identical comment and the
+# issue thread would fill with them.
+resume_notice_already_posted() {
+  local issue="$1" newest
+  newest="$(issue_comments "$issue" \
+    | jq -r 'sort_by(.createdAt) | last | .body // ""' 2>/dev/null || true)"
+  [[ "$newest" == *"$LOOP_MARKER_NOTICE"* ]] && [[ "$newest" == *"I did not start"* ]]
+}
+
 if [[ "$MODE" == "resume" ]]; then
   REASON="$(why_not_eligible "$TARGET")"
   if [[ -n "$REASON" ]]; then
@@ -156,6 +166,31 @@ if [[ "$MODE" == "resume" ]]; then
     summary "The comment was seen, but the issue is not implementable right now — ${REASON}."
     summary ""
     summary "This run is green because nothing failed, not because work was done."
+
+    # Answer where the question was asked.
+    #
+    # This used to live only on the run summary. Someone replies on an issue,
+    # watches the issue, and sees nothing happen — the explanation sits in the
+    # Actions tab, which is the last place you look when you have just typed a
+    # comment and are waiting for a reply. Silence reads as "broken", and it cost
+    # exactly that.
+    #
+    # The comment carries LOOP_MARKER_NOTICE, so the loop recognises it as its
+    # own: it does not re-trigger this workflow and it is never mistaken for a
+    # human answer later.
+    if ! resume_notice_already_posted "$TARGET"; then
+      NOTE="$LOOP_DIR/resume-declined.md"
+      {
+        printf '## I saw your comment, but I did not start\n\n'
+        printf '%s\n\n' "$REASON"
+        printf 'Nothing is wrong with this issue and nothing was lost. When the reason\n'
+        printf 'above is resolved, comment again and I will pick it up.\n'
+      } > "$NOTE"
+      loop_comment "$TARGET" "$NOTE"
+    else
+      log "a decline notice is already the newest comment on #$TARGET — not repeating it"
+    fi
+
     decline
     exit 0
   fi

@@ -28,13 +28,26 @@ You need all four:
 
 | | |
 |---|---|
-| A **GitHub repository** | public or private, your own or your org's |
+| A **GitHub repository owned by an organisation** | see the note below — a personal repo cannot drive the board |
 | A **Claude subscription** | Pro or Max. Runs bill against it |
 | **Node 18+** | only to install. The harness itself is bash and python |
 | **20 minutes** | most of it clicking around GitHub settings |
 
 Your project can be anything — Gradle, Node, Go, Python, Rust. You tell it how to build and
 test in one config file.
+
+> **Why an organisation?** The board is a GitHub Project, and moving cards needs a
+> fine-grained token with **Projects: Read and write**. That permission is offered under
+> **Organisation permissions** — so the token, the repository and the board all have to
+> belong to an organisation. On a personal repo you can read a board and never move a card,
+> which looks exactly like the harness being broken.
+>
+> Creating an org is free and takes a minute: <https://github.com/account/organizations/new>.
+> Move the repository into it, and create the board under the org.
+>
+> **Or skip the board entirely.** `board.optional: true` is the shipped default and the loop
+> runs on labels alone. Everything works; you just track progress on the issues list instead
+> of a board. A personal repo is fine for that.
 
 ---
 

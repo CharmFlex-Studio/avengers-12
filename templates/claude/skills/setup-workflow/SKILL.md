@@ -84,6 +84,12 @@ avengers-12/lib/check-board.sh
 It exits 0 and says so when no board is configured — label mode is a supported way to
 run, and `board.optional: true` ships as the default. Do not push anyone towards a board.
 
+**Ask first whether the repository is owned by an organisation.** A fine-grained token gets
+`Projects: Read and write` through *Organisation* permissions, so a personally-owned repo
+cannot move cards — it can read the board and every check here passes, because every check
+is a read. Say that before they spend twenty minutes building a board they cannot drive.
+Creating an org is free; so is deciding not to and running on labels.
+
 When a board **is** configured, this is the check that matters, because every board
 operation in the harness is deliberately non-fatal. A card that cannot move produces one
 warning inside a job log and nothing else: the run stays green, the card stays put, and
