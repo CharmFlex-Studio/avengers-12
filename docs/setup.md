@@ -70,6 +70,12 @@ Then the step that has no equivalent for personal repos:
 
 Save as secret `LOOP_PROJECT_TOKEN` on the repository.
 
+### Optional third secret
+
+`LOOP_WEBHOOK_URL` — any endpoint that accepts a JSON POST (Slack, Discord, your own).
+`escalate.sh` sends a one-line summary there when a run stops and needs you, so you hear
+about it without watching the Actions tab. Leave it unset and nothing is sent.
+
 `avengers-12/lib/check-auth.sh` runs first in both workflows and tells you which of these is
 wrong, in seconds, before a Claude run is spent.
 

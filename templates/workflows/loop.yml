@@ -533,6 +533,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.LOOP_PROJECT_TOKEN }}
           JOB_STATUS: ${{ job.status }}
+          # Optional. escalate.sh POSTs a one-line summary here when a run stops
+          # and needs you — Slack, Discord, anything taking a JSON webhook. The
+          # script read this for a long time while no workflow passed it, so
+          # setting the secret did nothing at all.
+          LOOP_WEBHOOK_URL: ${{ secrets.LOOP_WEBHOOK_URL }}
         run: avengers-12/lib/escalate.sh "$ISSUE" "$JOB_STATUS"
 
       - name: Upload evidence

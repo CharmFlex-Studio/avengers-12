@@ -61,7 +61,28 @@ if [[ -n "$DEFAULT_BRANCH" ]] && \
   ON_DEFAULT=true
 fi
 
+# Listing what IS set answers the wrong question. The one that matters is which
+# required things are NOT set — and a missing repository variable is invisible:
+# GitHub passes it as an empty string, and every script treats empty as "not
+# configured", which is a supported state. So nothing is ever wrong, and the
+# board simply never moves.
+#
+# LOOP_PROJECT_NUMBER / LOOP_PROJECT_OWNER are required only when a board is
+# wanted. Both blank is a complete, working setup.
+missing_of() {
+  local list="$1"; shift
+  local want
+  for want in "$@"; do
+    grep -qxF "$want" <<<"$list" || printf '%s\n' "$want"
+  done
+}
+
+MISSING_SECRETS="$(missing_of "$SECRETS" CLAUDE_CODE_OAUTH_TOKEN LOOP_PROJECT_TOKEN)"
+MISSING_BOARD_VARS="$(missing_of "$VARS" LOOP_PROJECT_NUMBER LOOP_PROJECT_OWNER)"
+
 jq -n \
+  --argjson missingSecrets   "$(json_array "$MISSING_SECRETS")" \
+  --argjson missingBoardVars "$(json_array "$MISSING_BOARD_VARS")" \
   --arg  repo           "$REPO" \
   --arg  defaultBranch  "$DEFAULT_BRANCH" \
   --argjson ghPresent   "$GH_PRESENT" \
@@ -80,5 +101,9 @@ jq -n \
      configPresent: $configFound,
      labels:   { present: $labels, missing: $missing },
      variables: $vars,
-     secrets:  $secrets
+     secrets:  $secrets,
+     missing: {
+       secrets: $missingSecrets,
+       boardVariables: $missingBoardVars
+     }
    }'

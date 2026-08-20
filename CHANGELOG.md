@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.1 — 2026-08-20
+
+- **The README never mentioned the repository variables.** It is the primary
+  setup document and its four steps covered the two secrets, the GitHub App and
+  the merge — and stopped. Follow it exactly and `LOOP_PROJECT_NUMBER` and
+  `LOOP_PROJECT_OWNER` are never set, so the board silently does nothing: labels
+  move, cards do not, and every check still passes, because an unset variable is
+  indistinguishable from "no board wanted". Now step 3d, with the warning
+  attached.
+- **`LOOP_WEBHOOK_URL` did nothing.** `escalate.sh` has read it for a long time
+  and no workflow ever passed it, so setting the secret sent no notifications and
+  gave no sign of it. Wired into the Escalate step and documented in both the
+  README and `docs/setup.md`.
+- `setup-status.sh` now reports a `missing` object — which required secrets and
+  board variables are absent — instead of only listing what is present. Listing
+  what is set answers the wrong question when the failure mode is something
+  unset.
+
 ## 0.4.0 — 2026-08-20
 
 - **A declined resume now answers on the issue**, not only on the run summary.

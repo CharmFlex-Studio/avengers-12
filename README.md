@@ -105,11 +105,33 @@ Fine-grained tokens → Generate new token**
 
 Save it as a second repository secret named `LOOP_PROJECT_TOKEN`.
 
+*Optional third secret:* `LOOP_WEBHOOK_URL` — any endpoint taking a JSON POST. The loop
+sends one line there when a run stops and needs you, so you are not watching the Actions
+tab. Unset means nothing is sent.
+
 > **If your repo belongs to an organisation:** set *Resource owner* to the organisation, not
 > your username. Then an org owner has to **approve** the token. Until they do, it works
 > perfectly and sees nothing — which is confusing enough that it is worth checking first.
 
-**3d. Merge to your default branch.** Commit what `init` created and merge it to `main`.
+**3d. Set the repository variables.** **Settings → Secrets and variables → Actions →
+Variables** tab. These are *variables*, not secrets — a different tab on the same page, and
+the easiest thing in this whole setup to walk past.
+
+| Variable | Value |
+|---|---|
+| `LOOP_PROJECT_NUMBER` | the number in your board's URL. **Skip if you are not using a board.** |
+| `LOOP_PROJECT_OWNER` | the owner in your board's URL — the organisation, not your username |
+| `LOOP_PAUSE_ALL` | `false`. Set it to `true` to stop every loop instantly |
+
+Optional, and better left unset: `LOOP_MAX_RUNS_PER_DAY` and `LOOP_BOARD_OPTIONAL` override
+`config.yml` for a while. Unset means the config wins, which is where those values belong.
+
+Without the first two, **the board silently does nothing** — labels move, cards do not, and
+every check still passes because a missing variable is indistinguishable from "no board
+wanted". That is by design; label mode is supported. It is also exactly what it looks like
+when you meant to have a board.
+
+**3e. Merge to your default branch.** Commit what `init` created and merge it to `main`.
 
 GitHub only runs workflows from the default branch when someone comments on an issue. Until
 this is merged, replying to a question does nothing at all.

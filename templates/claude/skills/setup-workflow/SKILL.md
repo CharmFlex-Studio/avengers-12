@@ -135,6 +135,16 @@ repeating it.
 
 The steps, and how to tell whether each is done:
 
+`setup-status.sh` reports a `missing` object. Read it before writing the checklist:
+
+- `missing.secrets` — always required. Nothing runs without both.
+- `missing.boardVariables` — required **only if they want a board**. Both absent is a
+  complete, working setup in label mode. Do not report it as a fault; ask first.
+
+A missing repository variable is invisible by design: GitHub passes it as an empty string
+and every script reads empty as "not configured", which is a supported state. So nothing
+is ever wrong and the board simply never moves. Say which are missing, plainly.
+
 | Step | Done when | You can check it? |
 |---|---|---|
 | Install the Claude GitHub App | the app appears in the repo's settings | no |
