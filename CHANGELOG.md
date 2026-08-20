@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.2 — 2026-08-20
+
+- README rewritten. Setup is seven numbered steps instead of four with two of
+  them merged, and both secrets and variables are tables with a **Required?**
+  column, so "do I need this one?" is answered without reading a paragraph.
+  `docs/setup.md` gained the same two tables, so the short form and the long form
+  now agree.
+- The prose is plainer. Fewer dashes, ordinary contractions, and the
+  epigram-shaped sentences are gone.
+
 ## 0.4.1 — 2026-08-20
 
 - **The README never mentioned the repository variables.** It is the primary

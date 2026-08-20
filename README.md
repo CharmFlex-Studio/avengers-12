@@ -1,59 +1,52 @@
 # avengers-12
 
-**Give Claude a GitHub issue. Get back a draft pull request.**
+Write a GitHub issue. Get back a draft pull request.
 
-You write an issue and label it. A GitHub Action picks it up, writes the code, runs your
-tests, and opens a draft PR. If it gets confused, it stops and asks you a question on the
-issue. You reply, and it carries on.
+You describe what you want and add a label. A GitHub Action picks the issue up, writes the
+code, runs your tests, and opens a draft PR. If it can't work out what you meant, it stops
+and asks on the issue. You reply, and it carries on.
 
-It never merges anything. You review every pull request, as usual.
+It never merges anything. You review every pull request yourself.
 
 ```
-     you                          avengers-12                       you
-      │                                │                             │
-  write an issue  ──────────────▶  reads it                          │
-  label it "loop:ready"            writes the code                   │
-      │                            runs your tests                   │
-      │                            opens a draft PR  ──────────────▶ review & merge
-      │                                │
-      │◀── asks a question ────────  stuck?
-   reply on the issue  ───────────▶ carries on
+  you                        avengers-12                    you
+   │                              │                          │
+  write an issue ───────────▶  reads it                      │
+  add "loop:ready"             writes code                   │
+   │                           runs your tests               │
+   │                           opens a draft PR ──────────▶ review, merge
+   │                              │
+   │◀──── asks a question ──── stuck?
+  reply on the issue ────────▶ carries on
 ```
 
----
-
-## Before you start
-
-You need all four:
+## What you need
 
 | | |
 |---|---|
-| A **GitHub repository owned by an organisation** | see the note below — a personal repo cannot drive the board |
-| A **Claude subscription** | Pro or Max. Runs bill against it |
-| **Node 18+** | only to install. The harness itself is bash and python |
-| **20 minutes** | most of it clicking around GitHub settings |
+| A GitHub repo | see the note about organisations below |
+| A Claude subscription | Pro or Max. Runs bill against it |
+| Node 18 or newer | only to install. The harness itself is bash and python |
+| About 20 minutes | mostly clicking through GitHub settings |
 
-Your project can be anything — Gradle, Node, Go, Python, Rust. You tell it how to build and
+Your project can be anything: Gradle, Node, Go, Python, Rust. You tell it how to build and
 test in one config file.
 
-> **Why an organisation?** The board is a GitHub Project, and moving cards needs a
-> fine-grained token with **Projects: Read and write**. That permission is offered under
-> **Organisation permissions** — so the token, the repository and the board all have to
-> belong to an organisation. On a personal repo you can read a board and never move a card,
-> which looks exactly like the harness being broken.
->
-> Creating an org is free and takes a minute: <https://github.com/account/organizations/new>.
-> Move the repository into it, and create the board under the org.
->
-> **Or skip the board entirely.** `board.optional: true` is the shipped default and the loop
-> runs on labels alone. Everything works; you just track progress on the issues list instead
-> of a board. A personal repo is fine for that.
+**About organisations.** If you want the GitHub Project board to work, the repo and the
+board both need to belong to an organisation. The token permission that lets anything move
+a card only appears under Organisation permissions. On a personal repo the token can read
+the board but never move a card, and nothing will tell you why.
 
----
+Creating an org is free and takes a minute:
+<https://github.com/account/organizations/new>. Move the repo into it, then create the
+board there.
+
+You can also skip the board. `board.optional: true` is the default and the loop runs on
+labels alone. A personal repo is fine for that, and you lose nothing except the card view.
 
 ## Setup
 
-### Step 1 — copy the files in
+### 1. Copy the files in
 
 In your project folder:
 
@@ -61,128 +54,126 @@ In your project folder:
 npx avengers-12 init
 ```
 
-This copies files into your repo. It never overwrites anything you have already changed.
+This copies files into your repo. It won't overwrite anything you've already edited.
 
-### Step 2 — let Claude Code fill in the config
+### 2. Fill in the config
 
-In Claude Code, in the same folder:
+In Claude Code, same folder:
 
 ```
 /setup-workflow
 ```
 
-It looks at your project, works out how you build and test it, and writes
+It reads your project, works out how you build and test, and writes
 `avengers-12/config.yml`. Then it tells you which of the steps below are still outstanding.
 
-*No Claude Code? Edit `avengers-12/config.yml` by hand instead — every line has a comment
-saying what it wants. Then run `npx avengers-12 doctor` until it stops complaining.*
+No Claude Code? Edit `avengers-12/config.yml` by hand. Every line has a comment saying what
+it wants. Then run `npx avengers-12 doctor` until it stops complaining.
 
-### Step 3 — the browser steps
+### 3. Install the Claude GitHub App
 
-These four cannot be automated. Nothing can do them for you.
+<https://github.com/apps/claude> and install it on your repo.
 
-**3a. Install the Claude GitHub App** — <https://github.com/apps/claude>, install it on your
-repository.
+### 4. Add two secrets
 
-**3b. Get your Claude token.** In a terminal:
+**Settings → Secrets and variables → Actions → Secrets tab**
+
+First, get your Claude token:
 
 ```bash
 claude setup-token
 ```
 
-Copy what it prints. In GitHub: **Settings → Secrets and variables → Actions → Secrets →
-New repository secret**
+| Secret | Required? | What it is |
+|---|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` | **Yes** | What `claude setup-token` printed |
+| `LOOP_PROJECT_TOKEN` | **Yes** | A GitHub token, made in the next step |
+| `LOOP_WEBHOOK_URL` | No | Any URL that accepts a JSON POST. You get a message when a run stops and needs you |
 
-- Name: `CLAUDE_CODE_OAUTH_TOKEN`
-- Value: the token you just copied
-
-**3c. Make a GitHub token.** **Settings → Developer settings → Personal access tokens →
+For `LOOP_PROJECT_TOKEN`: **Settings → Developer settings → Personal access tokens →
 Fine-grained tokens → Generate new token**
 
-- Repository access: only this repository
-- Repository permissions: **Contents**, **Issues**, **Pull requests** — all Read and write
-- If a **board** is wanted: also Projects → Read and write
+- Repository access: only this repo
+- Repository permissions: **Contents**, **Issues**, **Pull requests**, all Read and write
+- Using a board? Also **Organisation permissions → Projects → Read and write**
 
-Save it as a second repository secret named `LOOP_PROJECT_TOKEN`.
+If your repo belongs to an org, set *Resource owner* to the org, not your username. An org
+owner then has to approve the token. Until they do it works perfectly and sees nothing,
+which is confusing enough to be worth checking first.
 
-*Optional third secret:* `LOOP_WEBHOOK_URL` — any endpoint taking a JSON POST. The loop
-sends one line there when a run stops and needs you, so you are not watching the Actions
-tab. Unset means nothing is sent.
+### 5. Add the variables
 
-> **If your repo belongs to an organisation:** set *Resource owner* to the organisation, not
-> your username. Then an org owner has to **approve** the token. Until they do, it works
-> perfectly and sees nothing — which is confusing enough that it is worth checking first.
+**Same page, Variables tab.** This is a different tab from Secrets and it's easy to miss.
 
-**3d. Set the repository variables.** **Settings → Secrets and variables → Actions →
-Variables** tab. These are *variables*, not secrets — a different tab on the same page, and
-the easiest thing in this whole setup to walk past.
+| Variable | Required? | Value |
+|---|---|---|
+| `LOOP_PROJECT_NUMBER` | Only with a board | The number in your board's URL |
+| `LOOP_PROJECT_OWNER` | Only with a board | The owner in your board's URL. The org, not your username |
+| `LOOP_PAUSE_ALL` | No | `false`. Set it to `true` to stop every loop instantly |
+| `LOOP_MAX_RUNS_PER_DAY` | No | Overrides `budget.maxRunsPerDay`. Leave it unset and the config wins |
+| `LOOP_BOARD_OPTIONAL` | No | Overrides `board.optional`. Leave it unset and the config wins |
 
-| Variable | Value |
-|---|---|
-| `LOOP_PROJECT_NUMBER` | the number in your board's URL. **Skip if you are not using a board.** |
-| `LOOP_PROJECT_OWNER` | the owner in your board's URL — the organisation, not your username |
-| `LOOP_PAUSE_ALL` | `false`. Set it to `true` to stop every loop instantly |
+If you want a board and skip the first two, the board just sits there. Labels move, cards
+don't, and nothing turns red. An unset variable looks exactly like "I don't want a board",
+which is a normal way to run.
 
-Optional, and better left unset: `LOOP_MAX_RUNS_PER_DAY` and `LOOP_BOARD_OPTIONAL` override
-`config.yml` for a while. Unset means the config wins, which is where those values belong.
+### 6. Merge to your default branch
 
-Without the first two, **the board silently does nothing** — labels move, cards do not, and
-every check still passes because a missing variable is indistinguishable from "no board
-wanted". That is by design; label mode is supported. It is also exactly what it looks like
-when you meant to have a board.
+Commit what `init` created and merge it to `main`.
 
-**3e. Merge to your default branch.** Commit what `init` created and merge it to `main`.
+GitHub only runs a workflow from the default branch when someone comments on an issue.
+Until this is merged, replying to a question does nothing.
 
-GitHub only runs workflows from the default branch when someone comments on an issue. Until
-this is merged, replying to a question does nothing at all.
-
-### Step 4 — check it
+### 7. Check it
 
 ```bash
 npx avengers-12 doctor
 ```
 
-Fix whatever it names. Run it again. Keep going until it is quiet.
+Fix what it names, then run it again. Keep going until it's quiet.
 
-Full detail on every step, including screenshots' worth of specifics:
+Longer version of all of this, with the org-owned cases spelled out:
 [`docs/setup.md`](docs/setup.md).
-
----
 
 ## Your first run
 
-**1. Write an issue.** A title, what you want, and how you would know it worked:
+**Write an issue.** Say what you want and how you'd know it worked:
 
 ```markdown
 ## Acceptance criteria
-- [ ] Empty search box shows "Type to search" instead of a blank list
+- [ ] An empty search box shows "Type to search" instead of a blank list
 - [ ] A test covers the empty-input case
 ```
 
-Acceptance criteria are not paperwork. They are the whole specification the coder gets.
-Vague criteria produce vague code, or a run that stops and asks you what you meant.
+Those criteria are the whole spec the coder gets. Vague criteria give you vague code, or a
+run that stops and asks what you meant.
 
-**2. Label it `loop:ready`.**
+Not sure the format is right? Check before you spend a run:
 
-**3. Start a run.** GitHub → **Actions** → **Loop** → **Run workflow**.
+```bash
+avengers-12/lib/check-issue.sh --issue 36
+```
 
-Pick `triage-only` the first time. It reads your queue and tells you what it thinks,
-without spending a run. Read that before letting it write code.
+It uses the same parser as the gate, so it can't tell you something different.
 
-**4. Then run it for real.** Same button, `mode: full`. About 20 minutes later you get a
-draft PR.
+**Add the label `loop:ready`.**
 
----
+**Start a run.** GitHub → Actions → Loop → Run workflow.
 
-## Day to day
+Pick `triage-only` the first time. It reads your queue and tells you what it thinks without
+spending a run. Read that before letting it write code.
 
-| You want to | Do this |
+Then run it again with `mode: full`. About 20 minutes later you get a draft PR.
+
+## Using it
+
+| To do this | Do this |
 |---|---|
 | Queue up work | Write an issue, label it `loop:ready` |
 | Start a run | Actions → Loop → Run workflow |
 | Answer a question | Reply on the issue. It restarts by itself |
-| Stop everything | Set the repo variable `LOOP_PAUSE_ALL` to `true` |
-| See what it thinks | `avengers-12/state/STATE.md`, rewritten every run |
+| Stop everything | Set `LOOP_PAUSE_ALL` to `true` |
+| See what it's thinking | `avengers-12/state/STATE.md`, rewritten every run |
 
 ### The labels
 
@@ -194,142 +185,128 @@ draft PR.
 | `loop:blocked` | It asked you something and stopped |
 | `loop:needs-spec` | Too vague to attempt. Add detail |
 
-**You never set these by hand.** Except `loop:ready` — that one is how you say "go".
+You only ever set `loop:ready`. The rest are the loop's.
 
-### When it asks you a question
+### When it asks you something
 
-It comments on the issue and stops. Reply in plain words.
+It comments on the issue and stops. Reply in plain words. That's it. Your reply restarts it
+and you don't need to touch the label.
 
-That is all. Your reply restarts it automatically. Do not change the label.
+One thing to avoid: don't write `@claude` in your reply. That phrase belongs to a different
+workflow and your answer will go to the wrong place.
 
-**One trap:** do not write `@claude` in your reply. That phrase belongs to a different
-workflow and your answer will go to the wrong place. Just answer normally.
+If it decides your reply doesn't count, it says so on the issue and explains why.
 
----
+## What it won't do
 
-## What it will not do
+These are deliberate.
 
-Deliberate limits, not missing features:
+- It never merges. Every PR is a draft.
+- It never pushes to your default branch. Only to `loop/issue-N` branches.
+- It can't edit its own rules. `config.yml`, the workflows and the scripts are all blocked.
+- It stops and asks rather than guessing at a vague issue.
+- It runs twice a day by default. Change `budget.maxRunsPerDay`.
+- One run at a time. A second run waits for the first.
+- An implement run is capped at 45 minutes.
 
-- **It never merges.** Every PR is a draft. You review and merge.
-- **It never pushes to your default branch.** Only to `loop/issue-N` branches.
-- **It cannot edit its own rules.** `config.yml`, the workflows and the harness scripts are
-  blocked. A run that could widen its own permissions would make every other rule pointless.
-- **It stops rather than guesses.** A vague issue gets a question, not an invented answer.
-- **It runs twice a day by default.** Change `budget.maxRunsPerDay` in `config.yml`.
-- **One run at a time.** A second run queues behind the first.
-
-Whatever it changes is checked *after* it finishes and *before* anything is pushed: the
-files it touched are compared against your denylist, and your own build and tests must
-pass. It is never asked whether it behaved. The diff is inspected.
-
----
+After the coder finishes, and before anything is pushed, a script compares the changed
+files against your denylist and runs your build and tests. It doesn't ask the agent whether
+it behaved. It looks at the diff.
 
 ## When something goes wrong
 
-| What you see | What it means |
+| You see | It means |
 |---|---|
-| Run is red at the first step | Setup is incomplete. Run `npx avengers-12 doctor` |
-| `Invalid username or token` | The fine-grained token is not approved yet, or lacks a permission |
-| Card does not move on the board | Look at the top of the run summary — it now says why |
-| Issue got `loop:needs-spec` | Too vague to attempt. Run `check-issue.sh` on it to see exactly why |
-| Run green but nothing happened | Read the summary. It says what it decided and why |
-| Nothing happens when you reply | The workflow is not on your default branch yet (step 3d) |
+| Red run at the first step | Setup isn't finished. Run `npx avengers-12 doctor` |
+| `Invalid username or token` | The token isn't approved yet, or is missing a permission |
+| Cards don't move on the board | Look at the top of the run summary. It says why now |
+| Issue got `loop:needs-spec` | Too vague. Run `check-issue.sh` on it to see exactly why |
+| Green run but nothing happened | Read the summary. It says what it decided |
+| Nothing happens when you reply | The workflow isn't on your default branch yet (step 6) |
 
-The run summary page is written for you to read. Start there, not in the logs.
-
----
+The run summary page is written to be read. Start there, not in the logs.
 
 ## Configuration
 
 One file: `avengers-12/config.yml`. Nothing project-specific lives anywhere else.
 
-The parts you will actually touch:
+The parts you'll actually touch:
 
 ```yaml
-verify:                              # how a change proves itself
+verify:                          # how a change proves itself
   - name: test
-    run: npm test                    # your real command
+    run: npm test                # your real command
 
 gate:
-  deny:                              # paths a run may never touch
+  deny:                          # paths a run must never touch
     - ".env"
     - "**/secrets/**"
 
 tests:
-  directory: test                    # where new tests go
-  example: test/example.test.js      # the style to copy
+  directory: test                # where new tests go
+  example: test/example.test.js  # the style to copy
 
 budget:
   maxRunsPerDay: 2
 ```
 
-`verify` is the one that matters most. If your command does not actually run your tests,
-then "tests passed" means nothing and every run goes green having proved nothing.
+`verify` matters most. If that command doesn't really run your tests, then "tests passed"
+means nothing, and every run goes green having checked nothing.
 
-Everything else — labels, branch names, board columns, models, caps — has a working default
-and a comment in the file explaining it.
-
----
+Everything else has a working default and a comment in the file explaining it.
 
 ## Commands
 
 ```bash
-npx avengers-12 init      # copy the harness in (safe to re-run)
-npx avengers-12 doctor    # check the installation, 14 checks
+npx avengers-12 init      # copy the harness in. Safe to run again
+npx avengers-12 doctor    # check the installation. 16 checks
 npx avengers-12 version
 ```
 
-Before you queue an issue, check it will be accepted:
-
 ```bash
-avengers-12/lib/check-issue.sh --issue 36    # needs gh
-pbpaste | avengers-12/lib/check-issue.sh     # or just paste the text
+avengers-12/lib/check-issue.sh --issue 36    # will this issue be accepted?
+pbpaste | avengers-12/lib/check-issue.sh     # or paste the text
 ```
 
-It uses the same parser the gate uses, so it cannot tell you a different answer.
+`init --force` refreshes the scripts and workflows. It never touches `config.yml` or your
+run history, whatever flags you pass.
 
-`init --force` refreshes the scripts and workflows to the current version. It never touches
-`config.yml` or your run history, whatever flags you pass.
+## Where it stands
 
----
+Version 0.4.1. Early.
 
-## Honest status
+The logic is bash and python. npm is how it gets to your repo, not what runs it.
 
-**Version 0.2.1. Early.**
+It's used daily on one Gradle project, and tested on every commit against a scratch Node
+project. It needs `bash`, `jq` and `python3` on the runner, which `ubuntu-latest` has.
+Windows runners are untested.
 
-- The logic is bash and python. npm is how it reaches your repo, not what runs it.
-- Used daily on one Gradle project. Tested on every commit against a scratch Node project.
-- Needs `bash`, `jq` and `python3` on the runner. `ubuntu-latest` has all three. Windows
-  runners are untested.
-- Extracted from a real repository rather than designed as a library. That is the reason to
-  trust it and the thing to watch: it does what one project genuinely needed.
+It came out of a real repo rather than being designed as a library. That's the reason to
+trust it and the thing to watch: it does what one project genuinely needed.
 
-Treat `config.yml` as stable and everything else as liable to change.
+Treat `config.yml` as stable and the rest as liable to change.
 
----
-
-## Reference
+## More
 
 - [`docs/setup.md`](docs/setup.md) — every setup step in full
-- [`rules/constraints.md`](rules/constraints.md) — the rules a run must follow, and which
-  are enforced by code rather than asked for politely
-- [`rules/budget.md`](rules/budget.md) — what a run costs and where the caps live
+- [`rules/constraints.md`](rules/constraints.md) — the rules a run follows, and which are
+  enforced by code rather than asked for politely
+- [`rules/budget.md`](rules/budget.md) — what a run costs
 - [`CHANGELOG.md`](CHANGELOG.md)
 
-### What is in your repo after `init`
+What ends up in your repo after `init`:
 
 ```
 avengers-12/
-  config.yml         yours. The only file you must edit
-  lib/               the scripts. Run by GitHub Actions, never by the model
-  rules/             what a run must follow
-  settings/          what the model is allowed to do
-  docs/setup.md      the long form of step 3
-  state/             what happened. Written by the loop, read by you
+  config.yml       yours. The only file you have to edit
+  lib/             the scripts. Run by GitHub Actions, never by the model
+  rules/           what a run has to follow
+  settings/        what the model is allowed to do
+  docs/setup.md    the long version of steps 3 to 6
+  state/           what happened. Written by the loop, read by you
 
-.github/workflows/   loop.yml and loop-board-done.yml
-.claude/             the skills and subagents Claude Code uses
+.github/workflows/ loop.yml and loop-board-done.yml
+.claude/           the skills and subagents Claude Code uses
 ```
 
 MIT licensed. Issues and pull requests welcome:

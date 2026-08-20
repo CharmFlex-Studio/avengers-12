@@ -148,17 +148,28 @@ both be reached by one token. If your board URL says `/users/` and your reposito
 to an org, either transfer the board to the organisation or accept label-only mode
 (`board.optional: true`, which is the shipped default).
 
+## Secrets, at a glance
+
+**Settings → Secrets and variables → Actions → Secrets tab.** Steps 2 and 3 above walk
+through making each one.
+
+| Secret | Required? | What it is |
+|---|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` | **Yes** | Output of `claude setup-token`. Bills your subscription |
+| `LOOP_PROJECT_TOKEN` | **Yes** | Fine-grained PAT. Contents, Issues, Pull requests. Plus Projects if you want a board |
+| `LOOP_WEBHOOK_URL` | No | Any endpoint accepting a JSON POST. One line is sent when a run stops and needs you |
+
 ## 5. Repository variables
 
 Settings → Secrets and variables → Actions → **Variables** tab:
 
-| Variable | Value |
-|---|---|
-| `LOOP_PROJECT_NUMBER` | the number from step 4 |
-| `LOOP_PROJECT_OWNER` | `YOUR-ORG` — the owner of the *board*, which for an org-owned board is the org, not your username. Read it off the board's URL, as in step 4. |
-| `LOOP_PAUSE_ALL` | `false` — set to `true` to stop every loop instantly |
-| `LOOP_MAX_RUNS_PER_DAY` | optional. Leave it unset and `budget.maxRunsPerDay` in `avengers-12/config.yml` applies. Set it only to override the config for a while. |
-| `LOOP_BOARD_OPTIONAL` | optional. Leave it unset and `board.optional` in `avengers-12/config.yml` applies, which ships as `true`. Set `board.optional: false` once the board resolves, so a board that breaks later fails loudly instead of silently degrading to label-only ordering. |
+| Variable | Required? | Value |
+|---|---|---|
+| `LOOP_PROJECT_NUMBER` | **Only if you want a board** | The number from step 4 |
+| `LOOP_PROJECT_OWNER` | **Only if you want a board** | `YOUR-ORG`. The owner of the *board*, which for an org-owned board is the org, not your username. Read it off the board's URL, as in step 4. |
+| `LOOP_PAUSE_ALL` | No | `false`. Set it to `true` to stop every loop instantly |
+| `LOOP_MAX_RUNS_PER_DAY` | No | Overrides `budget.maxRunsPerDay` in `avengers-12/config.yml`. Leave it unset and the config wins |
+| `LOOP_BOARD_OPTIONAL` | No | Overrides `board.optional` in `avengers-12/config.yml`, which ships as `true`. Leave it unset and the config wins |
 
 Both are overrides, not settings. The config file is where the value belongs; an unset
 variable is the normal state.
