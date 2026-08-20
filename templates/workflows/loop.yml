@@ -58,11 +58,14 @@ on:
     types: [created]
 
   # GitHub cannot read config.yml when deciding whether to fire a cron, so the
-  # timing lives here and the decision lives in schedule.everyHours. This fires
-  # every four hours; the `gate` job below stops it in seconds unless the config
-  # says otherwise. Default is off, and off costs about thirty seconds a day.
+  # timing lives here and the decision lives in schedule.everyHours. This asks
+  # every hour, which is what makes `everyHours: 1` mean one hour; the `gate` job
+  # below stops it in seconds on every firing that is too soon.
+  #
+  # Twenty-four firings a day, most of them ending in about fifteen seconds. The
+  # gate checks out avengers-12/ only, not your whole repository.
   schedule:
-    - cron: '0 */4 * * *'
+    - cron: '0 * * * *'
 
 concurrency:
   group: loop
@@ -106,14 +109,28 @@ jobs:
     outputs:
       go: ${{ steps.decide.outputs.go }}
     steps:
+      # Only the harness folder. This runs 24 times a day and has no business
+      # pulling down the whole repository to read one number.
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+          sparse-checkout: avengers-12
+          sparse-checkout-cone-mode: false
+
       - id: decide
+        env:
+          HAS_CLAUDE_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" != "schedule" ]; then
             echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # A repo that was installed and never finished being set up would
+          # otherwise produce one red run a day, for ever, with nobody watching.
+          if [ "$HAS_CLAUDE_TOKEN" != "true" ]; then
+            echo "::notice::Scheduled run skipped: CLAUDE_CODE_OAUTH_TOKEN is not set yet."
+            echo "go=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           if avengers-12/lib/schedule-gate.sh; then

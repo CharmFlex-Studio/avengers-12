@@ -18,12 +18,24 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=avengers-12/lib/common.sh
 source "$HERE/common.sh"
 
-EVERY="$(cfg schedule.everyHours 0)"
-[[ "$EVERY" =~ ^[0-9]+$ ]] || EVERY=0
+EVERY="$(cfg schedule.everyHours 24)"
+
+# Anything that is not a whole number is treated as off. A typo should stop the
+# timer, not start it every hour.
+if [[ ! "$EVERY" =~ ^[0-9]+$ ]]; then
+  warn "schedule.everyHours is '$EVERY', which is not a whole number — treating the timer as off"
+  exit 1
+fi
 
 if [[ "$EVERY" -eq 0 ]]; then
   log "schedule is off (schedule.everyHours: 0) — nothing to do"
   exit 1
+fi
+
+# One hour is the floor. GitHub is asked once an hour, so anything smaller would
+# just mean "every time you are asked" while reading as though it meant less.
+if [[ "$EVERY" -lt 1 ]]; then
+  EVERY=1
 fi
 
 # The last run of any kind, from the run log. An entry is written whenever a run

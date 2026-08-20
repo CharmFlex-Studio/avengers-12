@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.6.0 — 2026-08-20 *(not published)*
+
+- **The timer is on by default, at once a day.** It used to ship off. Set
+  `schedule.everyHours` to change it, or 0 to turn it off.
+- **The minimum is now 1 hour.** GitHub is asked every hour instead of every four,
+  so `everyHours: 1` means what it says.
+- A scheduled run stops before doing anything if `CLAUDE_CODE_OAUTH_TOKEN` is not
+  set, so a repo somebody installed and never finished setting up does not
+  produce a red run every day for ever.
+- The hourly check only fetches the `avengers-12/` folder, not your whole repo.
+- A non-numeric `everyHours` turns the timer off rather than running every hour.
+  A typo should stop it, not start it.
+
 ## 0.5.0 — 2026-08-20 *(not published)*
 
 - **The loop can run on a timer.** Set `schedule.everyHours` in the config and it

@@ -298,6 +298,24 @@ dies with nobody left to report it — and it has two separate `if:` conditions 
 `if: failure() || cancelled()`. A cancelled job is **not** a failed one, so `failure()`
 alone silently skips the step that saves your code, which is exactly what this test caught.
 
+## How often it runs by itself
+
+Once a day, out of the box. Change it in `avengers-12/config.yml`:
+
+```yaml
+schedule:
+  everyHours: 24     # 1 is the minimum, 0 turns it off
+```
+
+GitHub asks once an hour. Most of those checks end in about fifteen seconds because it is
+too soon, and they only look at the `avengers-12/` folder rather than your whole repo.
+
+Two things stop a scheduled run before it costs anything:
+
+* No `CLAUDE_CODE_OAUTH_TOKEN` yet, so a repo you installed and never finished setting up
+  will not fail every day
+* `LOOP_PAUSE_ALL` set to `true`
+
 ## Will my issue be accepted?
 
 `preflight.sh` refuses an issue whose Acceptance criteria section it cannot parse, and the

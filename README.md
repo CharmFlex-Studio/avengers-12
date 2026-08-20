@@ -110,20 +110,25 @@ Nothing goes red, so it's worth double checking.
 Commit what got created and merge it. Replying to the loop's questions won't work until
 this is on your default branch.
 
-### 7. Optional: let it run on its own
+### 7. Decide how often it runs by itself
 
-Off by default. To turn it on, open `avengers-12/config.yml`:
+**Out of the box it runs once a day** and picks up whatever is labelled `loop:ready`. If
+that suits you, skip this step.
+
+To change it, open `avengers-12/config.yml`:
 
 ```yaml
 schedule:
-  everyHours: 8      # 0 means off
+  everyHours: 24     # once a day. 1 is the minimum. 0 turns it off
 ```
 
-That's it. It'll start itself at most once every 8 hours and pick up whatever is labelled
-`loop:ready`. GitHub checks every four hours, so anything below 4 behaves the same as 4.
+GitHub asks once an hour and skips if it's too soon, so `1` really does mean one hour.
 
-`budget.maxRunsPerDay` only applies here, to runs nobody asked for. It's your brake if
-something goes wrong overnight.
+Nothing runs until your Claude token is set, so a half-finished setup won't sit there
+failing every day.
+
+`budget.maxRunsPerDay` applies to these runs only. It's your brake if something goes wrong
+overnight. Runs you start yourself are never capped.
 
 ### 8. Check your work
 
@@ -156,7 +161,8 @@ avengers-12/lib/check-issue.sh --issue 36
 
 Now label the issue `loop:ready`, then go to **Actions → Loop → Run workflow**.
 
-Press Run as often as you like. There is no limit on runs you start yourself.
+Press Run as often as you like. There's no limit on runs you start yourself. It also runs
+once a day on its own, which you can change or switch off in the config.
 
 Choose `triage-only` for your first go. It reads your issues and tells you what it makes of
 them without writing any code. Have a look at that, then run it again with `mode: full`.
@@ -213,7 +219,7 @@ where they are.
 
 ## Status
 
-Version 0.5.0. Still early.
+Version 0.6.0. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.
