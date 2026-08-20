@@ -168,6 +168,7 @@ Settings → Secrets and variables → Actions → **Variables** tab:
 | `LOOP_PROJECT_NUMBER` | **Only if you want a board** | The number from step 4 |
 | `LOOP_PROJECT_OWNER` | **Only if you want a board** | `YOUR-ORG`. The owner of the *board*, which for an org-owned board is the org, not your username. Read it off the board's URL, as in step 4. |
 | `LOOP_PAUSE_ALL` | No | `false`. Set it to `true` to stop every loop instantly |
+| `LOOP_PAUSE_SCHEDULE` | No | `false`. Set it to `true` to stop **the timer only**. Runs you start yourself, and replies on a blocked issue, still work |
 | `LOOP_MAX_RUNS_PER_DAY` | No | Overrides `budget.maxRunsPerDay` in `avengers-12/config.yml`. Leave it unset and the config wins |
 | `LOOP_BOARD_OPTIONAL` | No | Overrides `board.optional` in `avengers-12/config.yml`, which ships as `true`. Leave it unset and the config wins |
 
@@ -286,6 +287,8 @@ to the interactive workflow) and a comment from someone without write access.
 |---|---|
 | Fire Implement on an issue without `loop:ready` | preflight fails, Claude never starts, zero spend |
 | Set `LOOP_PAUSE_ALL=true`, fire either workflow | job skipped entirely |
+| Set `LOOP_PAUSE_SCHEDULE=true`, wait for the next hourly firing | gate stops it; the run summary says the timer is paused |
+| Set `LOOP_PAUSE_SCHEDULE=true`, then press Run workflow | runs normally — this switch is the timer only |
 | Add a path you're touching to `avengers-12/config.yml`'s denylist, re-run | fails at the gate, no branch pushed, patch in the artifact |
 | Re-run an issue that already has an open loop PR | the picker skips it; a *named* re-run pushes to the existing PR and succeeds, rather than dying on "a pull request already exists" |
 | Run an issue against `main`, then re-run it against a feature branch | preflight refuses, naming the branch recorded in the `Loop-Base-Branch:` trailer |
@@ -323,6 +326,17 @@ Two things stop a scheduled run before it costs anything:
 * No `CLAUDE_CODE_OAUTH_TOKEN` yet, so a repo you installed and never finished setting up
   will not fail every day
 * `LOOP_PAUSE_ALL` set to `true`
+* `LOOP_PAUSE_SCHEDULE` set to `true` — the timer only. Pressing Run still works, and a
+  blocked issue still resumes when you reply. This is the one to reach for when you want
+  the loop to stop starting itself but still want to drive it by hand.
+
+`schedule.everyHours: 0` turns the timer off too, but it lives in `avengers-12/config.yml`,
+so it needs a commit and a merge to the default branch before it takes effect. The variable
+takes effect on the next firing. Config for "this repo is not on a timer", variable for
+"not this week".
+
+Both switches accept `true`, `yes`, `on` and `1`, in any case. They are stop switches, so
+the only mistake that matters is one that fails to stop. An unset variable is always off.
 
 ## Will my issue be accepted?
 

@@ -108,6 +108,9 @@ you are reading.
 - **[machine]** Kill switch: repo variable `LOOP_PAUSE_ALL=true` stops `loop.yml` — triage and implement both. `loop-board-done.yml` is NOT paused by
   it: it only reacts to a pull request closing, and a card stranded in the wrong lane
   because the kill switch was on is a worse outcome than it doing its one job.
+- **[machine]** Timer switch: repo variable `LOOP_PAUSE_SCHEDULE=true` stops scheduled
+  firings only, in `schedule-gate.sh`. Dispatches and issue-comment resumes are untouched —
+  you asked for those, so they are not the timer's business.
 
 ---
 <!-- Add your own rules below. Use plain English. The loop reads this verbatim. -->

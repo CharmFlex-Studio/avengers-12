@@ -89,6 +89,10 @@ env:
   # variable is the override; config.yml is the default.
   LOOP_BOARD_OPTIONAL: ${{ vars.LOOP_BOARD_OPTIONAL }}
   LOOP_PAUSE_ALL: ${{ vars.LOOP_PAUSE_ALL }}
+  # Stops the timer only. Pressing Run, and replying on a blocked issue, both
+  # still work — schedule-gate.sh is the only thing that reads it, and that
+  # script only ever runs for a `schedule` event.
+  LOOP_PAUSE_SCHEDULE: ${{ vars.LOOP_PAUSE_SCHEDULE }}
   LOOP_NOTIFY_USER: ${{ github.repository_owner }}
   LOOP_MAX_RUNS_PER_DAY: ${{ vars.LOOP_MAX_RUNS_PER_DAY }}
   # LOOP_BASE_BRANCH is deliberately NOT set here. Each job resolves it in a

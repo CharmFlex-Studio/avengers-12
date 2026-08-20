@@ -18,6 +18,28 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=avengers-12/lib/common.sh
 source "$HERE/common.sh"
 
+# The timer's off switch, and the only one you can flip without a commit.
+#
+# It stops the CLOCK, not the loop: pressing Run in the Actions tab still works,
+# and replying to a blocked issue still resumes it. That is the whole point of
+# having it separate from LOOP_PAUSE_ALL, which stops those too.
+#
+# A repo variable rather than a config key because turning the timer off is
+# usually something you want to do NOW — you are on holiday, or a run is
+# misbehaving overnight. Editing `schedule.everyHours: 0` means a commit, a
+# push, and a merge to the default branch before it takes effect. This takes
+# effect on the next firing.
+#
+# The variable is the override; config.yml is the default. Same rule as
+# LOOP_MAX_RUNS_PER_DAY and the rest.
+#
+# is_true accepts true/yes/on/1 in any case, because this is a STOP switch and
+# the only mistake that hurts is one that fails to stop. Unset is still off.
+if is_true "${LOOP_PAUSE_SCHEDULE:-}"; then
+  notice "Timer paused (repo variable LOOP_PAUSE_SCHEDULE=true). Runs you start yourself still work."
+  exit 1
+fi
+
 EVERY="$(cfg schedule.everyHours 24)"
 
 # Anything that is not a whole number is treated as off. A typo should stop the

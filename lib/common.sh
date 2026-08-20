@@ -209,6 +209,28 @@ notice()  { printf '::notice::%s\n' "$*"; }
 problem() { printf '::error::%s\n' "$*"; }
 caution() { printf '::warning::%s\n' "$*"; }
 
+# --- switches ----------------------------------------------------------------
+
+# Is this repository variable switched on?
+#
+# Repository variables are free text typed into a web form, so `TRUE`, `True`
+# and `yes` all turn up in the wild meaning exactly what `true` means. The
+# switches that read this are STOP switches: the only mistake that actually
+# hurts is one that fails to stop, so anything a person could reasonably type
+# to mean yes is accepted.
+#
+# Unset stays off. An unset repository variable arrives as an empty string, and
+# an empty string must never read as "stop" -- that would pause every repo that
+# never set the variable at all. Only text a human typed on purpose counts.
+#
+# Usage: if is_true "${LOOP_PAUSE_ALL:-}"; then ...
+is_true() {
+  case "$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')" in
+    true|yes|on|1) return 0 ;;
+    *)             return 1 ;;
+  esac
+}
+
 # --- guards -----------------------------------------------------------------
 
 require_cmd() {

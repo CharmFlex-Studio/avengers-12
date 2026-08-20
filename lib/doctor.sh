@@ -266,7 +266,34 @@ else
 fi
 endgroup
 
-# --- 4g. no script sits in lib/ with nothing calling it ----------------------
+# --- 4g. say whether the timer is on, and why ---------------------------------
+# Not a fault check. "The loop has not run in days" is the single most common
+# thing people come back puzzled about, and every reason for it is invisible:
+# a repo variable set weeks ago, or a zero in the config. Neither shows up
+# anywhere unless you go looking. So print the answer whether or not it is bad
+# news, and never count it as a problem -- a paused timer is a choice.
+group "Timer"
+if is_true "${LOOP_PAUSE_SCHEDULE:-}"; then
+  printf '  ⏸ paused by the repo variable LOOP_PAUSE_SCHEDULE (set to "%s")\n' "$LOOP_PAUSE_SCHEDULE"
+  printf '      Runs you start yourself, and replies on a blocked issue, still work.\n'
+  printf '      Set it to false (or delete it) to start the timer again.\n'
+elif is_true "${LOOP_PAUSE_ALL:-}"; then
+  printf '  ⏸ EVERYTHING is paused by the repo variable LOOP_PAUSE_ALL (set to "%s")\n' "$LOOP_PAUSE_ALL"
+  printf '      That stops runs you start yourself too, not just the timer.\n'
+else
+  DOC_EVERY="$(cfg schedule.everyHours 24)"
+  if [[ ! "$DOC_EVERY" =~ ^[0-9]+$ ]]; then
+    printf '  ⏸ off: schedule.everyHours is "%s", which is not a whole number\n' "$DOC_EVERY"
+  elif [[ "$DOC_EVERY" -eq 0 ]]; then
+    printf '  ⏸ off: schedule.everyHours is 0\n'
+  else
+    printf '  ✓ on: every %sh (schedule.everyHours)\n' "$DOC_EVERY"
+    printf '      Pause it without a commit: set the repo variable LOOP_PAUSE_SCHEDULE to true.\n'
+  fi
+fi
+endgroup
+
+# --- 4h. no script sits in lib/ with nothing calling it ----------------------
 # sync-board.sh lived in one repository for days, correct and complete, wired to
 # nothing. It was written to fix a real gap -- triage changes labels through a
 # model, and a model is deliberately not allowed to move cards -- and then no
@@ -292,7 +319,7 @@ fi
 endgroup
 
 # --- 5. every script the harness calls is present and parses -----------------
-# --- 4h. nothing here may need bash 4 ----------------------------------------
+# --- 4i. nothing here may need bash 4 ----------------------------------------
 # macOS ships bash 3.2 and always will — Apple froze it at the last GPLv2
 # release. The runner has bash 5, so a bash-4 construct passes CI and then fails
 # on the laptop of whoever runs check-issue.sh or doctor.sh by hand. That is a

@@ -52,6 +52,20 @@ Set repo variable `LOOP_PAUSE_ALL` to `true`. `loop.yml` skips at the job level,
 
 Resume by setting it back to `false`.
 
+## Timer switch
+
+Set repo variable `LOOP_PAUSE_SCHEDULE` to `true`. `schedule-gate.sh` stops every scheduled
+firing; nothing else changes. Pressing Run in the Actions tab still works, and a blocked
+issue still resumes when the owner replies.
+
+Reach for this one when the loop should stop starting itself but you still want to drive it
+by hand. `LOOP_PAUSE_ALL` takes those away too.
+
+`schedule.everyHours: 0` does the same job from the config, but needs a commit and a merge
+to the default branch first.
+
+Both switches read `true`, `yes`, `on` or `1`, in any case. Unset is off.
+
 ## On budget exceed
 
 `preflight.sh` fails the job with an explanation before any tokens are spent, **and

@@ -99,6 +99,7 @@ Same page, but the **Variables** tab this time. It's easy to miss.
 | `LOOP_PROJECT_NUMBER` | Only if you want a board | The number in your board's URL |
 | `LOOP_PROJECT_OWNER` | Only if you want a board | The owner in your board's URL |
 | `LOOP_PAUSE_ALL` | No | `false`. Switch it to `true` to stop everything at once |
+| `LOOP_PAUSE_SCHEDULE` | No | `false`. Switch it to `true` to stop **the timer only** — you can still start runs yourself |
 | `LOOP_MAX_RUNS_PER_DAY` | No | Overrides the config file. Leave it out and the config wins |
 | `LOOP_BOARD_OPTIONAL` | No | Overrides the config file. Leave it out and the config wins |
 
@@ -128,6 +129,22 @@ You will still see about 24 entries a day in the Actions tab. That is expected: 
 cannot read `config.yml` when it decides whether to fire, so it fires hourly and the first
 job answers. Judge them by **duration**, not by count — a firing that was too soon ends in
 around fifteen seconds.
+
+**To turn the timer off without a commit**, set the repository variable `LOOP_PAUSE_SCHEDULE`
+to `true` (Settings → Secrets and variables → Actions → Variables). It takes effect on the
+next firing. Runs you start yourself still work, and a blocked issue still resumes when you
+reply — it only stops the clock. Set it back to `false`, or delete it, to start again.
+
+Two switches, and they are not the same thing:
+
+| Variable | Timer | Actions → Run workflow | Reply on a blocked issue |
+|---|---|---|---|
+| `LOOP_PAUSE_SCHEDULE=true` | off | still works | still works |
+| `LOOP_PAUSE_ALL=true` | off | blocked | blocked |
+
+`schedule.everyHours: 0` in the config does the same job as `LOOP_PAUSE_SCHEDULE`, but needs
+a commit and a merge to the default branch first. Use the config for "this repo is not on a
+timer"; use the variable for "not this week".
 
 Nothing runs until your Claude token is set, so a half-finished setup won't sit there
 failing every day.
@@ -180,6 +197,7 @@ Around 20 minutes later you'll have a draft PR.
 | Add work to the queue | Write an issue and label it `loop:ready` |
 | Start a run | Actions → Loop → Run workflow |
 | Answer a question | Reply on the issue. It picks up again on its own |
+| Turn off the timer | Set `LOOP_PAUSE_SCHEDULE` to `true`. You can still start runs yourself |
 | Stop everything | Set `LOOP_PAUSE_ALL` to `true` |
 
 `loop:ready` is the only label you set. The rest belong to the loop.

@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.4 — 2026-08-21 *(not published)*
+
+- **A switch that turns the timer off on its own.** Set the repository variable
+  `LOOP_PAUSE_SCHEDULE` to `true` and every scheduled firing stops at the gate.
+  Nothing else changes: pressing **Run workflow** still works, and a blocked
+  issue still resumes when you reply. It takes effect on the next firing, with
+  no commit, no push and no merge to the default branch.
+
+  `LOOP_PAUSE_ALL` already existed and still does, but it is a bigger hammer —
+  it takes away the runs you start yourself too. `schedule.everyHours: 0` also
+  turns the timer off, but it lives in the config, so it needs a commit first.
+  Use the config for "this repo is not on a timer", the variable for "not this
+  week", and `LOOP_PAUSE_ALL` for "stop, now, everything".
+
+- `doctor` now prints a **Timer** section saying whether the timer is on, and if
+  it is off, which of the three things turned it off. "The loop has not run in
+  days" is the most common puzzle this harness produces, and every cause of it
+  used to be invisible. A paused timer is never counted as a fault.
+
+- Both stop switches now read `true`, `yes`, `on` and `1`, in any case, through
+  a shared `is_true` helper. They are STOP switches: the only mistake that
+  actually hurts is one that fails to stop, and `TRUE` typed into a web form
+  used to be silently ignored. An unset variable is still off — an empty string
+  must never read as "stop", or every repo that never set the variable would
+  pause.
+
 ## 0.7.3 — 2026-08-20 *(not published)*
 
 - **`schedule.everyHours` was ignored whenever the queue was empty.** The gate

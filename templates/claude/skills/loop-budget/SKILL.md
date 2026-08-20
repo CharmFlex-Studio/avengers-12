@@ -24,6 +24,7 @@ Everything that actually caps a run now happens in the harness, before or around
 | Wall clock | `timeout-minutes` | the job |
 | Fix attempts | `.loop/attempts.json`, written by `evidence.sh` | read by the orchestrator |
 | Kill switch | repo variable `LOOP_PAUSE_ALL` | job-level `if:` **and** `preflight.sh` |
+| Timer switch | repo variable `LOOP_PAUSE_SCHEDULE` | `schedule-gate.sh`, scheduled runs only |
 
 If you hit one of these, you will simply stop — there is no negotiation and nothing for you
 to decide.

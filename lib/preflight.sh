@@ -37,7 +37,7 @@ loop_init_dirs
 # --- 1. kill switch ----------------------------------------------------------
 # Also gated at job level, but a second check costs nothing and covers the case
 # where someone flips the variable while a run is queued.
-if [[ "${LOOP_PAUSE_ALL:-false}" == "true" ]]; then
+if is_true "${LOOP_PAUSE_ALL:-}"; then
   problem "loop-pause-all is active — refusing to start"
   die "kill switch engaged (repo variable LOOP_PAUSE_ALL=true)"
 fi
