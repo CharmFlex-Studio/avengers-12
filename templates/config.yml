@@ -178,7 +178,9 @@ branch:
   prefix: "loop/issue-"
 
 # --- caps -------------------------------------------------------------------
-# Enforced in code, not by asking the model to count. Start low.
+# These are ceilings, not a schedule. Nothing here makes a run happen. The loop
+# starts when you press Run in the Actions tab, or when you reply to a question
+# on a blocked issue. maxRunsPerDay just stops the third one today.
 budget:
   maxRunsPerDay: 2
   maxAttemptsPerRun: 3

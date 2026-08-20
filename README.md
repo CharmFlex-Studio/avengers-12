@@ -141,6 +141,10 @@ avengers-12/lib/check-issue.sh --issue 36
 
 Now label the issue `loop:ready`, then go to **Actions → Loop → Run workflow**.
 
+Nothing runs on its own. You press Run, or you reply to a question the loop asked. That is
+it. `maxRunsPerDay` in the config is a ceiling, not a timetable: it stops you going over,
+it does not start anything.
+
 Choose `triage-only` for your first go. It reads your issues and tells you what it makes of
 them without writing any code. Have a look at that, then run it again with `mode: full`.
 Around 20 minutes later you'll have a draft PR.
@@ -196,7 +200,7 @@ where they are.
 
 ## Status
 
-Version 0.4.5. Still early.
+Version 0.4.6. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.

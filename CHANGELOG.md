@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.6 — 2026-08-20 *(not published)*
+
+- Said plainly that nothing runs on a timer. `maxRunsPerDay` is a ceiling, not a
+  schedule: it stops a third run today, it never starts one. The name reads like
+  a plan, and an old README line made it worse by claiming the loop ran twice a
+  day.
+
 Versions marked *not published* exist as git tags only. If you installed from npm you
 skipped straight from the version before to the one after.
 
