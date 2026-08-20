@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.5 — 2026-08-20
+
+- README rewritten from the reader's side. It now explains what to do and stops
+  there, instead of also explaining why the loop behaves the way it does. Gone:
+  how the gate reads a diff, what an unset variable looks like to a script, why a
+  bad verify command matters. None of that helps somebody trying to install it.
+- No em dashes left, and the sentences are shorter.
+
 ## 0.4.4 — 2026-08-20
 
 - Put the flow diagram back. Cutting it in 0.4.3 was the wrong trim: it is the
