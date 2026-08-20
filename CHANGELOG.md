@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.7.2 — 2026-08-20 *(not published)*
+
+- `soul.readNotes` caps how many earlier notes a run may open. 0 keeps writing
+  them and never reads them back.
+- A run no longer lists the soul folder, it only greps it. Listing cost more
+  every month as the folder grew, while telling the run no more. A grep costs the
+  same on a thousand notes as on ten, so the folder can grow without the runs
+  getting heavier.
+
 ## 0.7.1 — 2026-08-20 *(not published)*
 
 - The soul folder is now read as well as written. A run greps it for words from

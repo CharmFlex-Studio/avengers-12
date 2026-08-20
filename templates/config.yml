@@ -144,9 +144,18 @@ review:
 #
 # Nothing is written for routine work. A colour change leaves no file.
 #
-# Set to "" to turn it off.
+# Set directory to "" to turn the whole thing off.
 soul:
   directory: soul
+
+  # How many earlier notes a run may open. 0 means never read them, so notes are
+  # still written but nothing is spent looking things up.
+  #
+  # This is the only cost that grows. The folder itself can hold a thousand files
+  # without costing you anything: a run greps for words from the issue and opens
+  # at most this many matches. Three is usually plenty, because the notes that
+  # match a specific issue are few.
+  readNotes: 3
 
 # --- house rules ------------------------------------------------------------
 # Markdown files the coder must read before it writes anything.

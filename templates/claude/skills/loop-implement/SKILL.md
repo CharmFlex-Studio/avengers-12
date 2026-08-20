@@ -118,13 +118,18 @@ before editing" and nothing more — the coder reads the files themselves.>
 coder reads it for the house style and cannot guess the path.>
 
 ## What earlier runs left about this area
-<When soul.directory is set, grep it for words from the issue title and body:
-`grep -ril "<term>" soul/`. List any matching files by path, one per line, and nothing else
-— the coder opens them itself. Omit this section when the folder is empty or nothing
-matches, and when soul.directory is unset.
+<Read `soul.readNotes` from avengers-12/config.yml. **If it is 0, omit this section and do
+no searching at all.**
 
-These are notes from earlier runs about what exists in this repository. The coder starts
-cold, so this is the only way it learns that a feature it is about to build already half
+Otherwise grep the folder for distinctive words from the issue title and body:
+`grep -ril "<term>" soul/`. List **at most `readNotes`** matching files by path, one per
+line, nothing else — the coder opens them itself. Prefer the ones matching the most terms.
+Omit the section when nothing matches, or when soul.directory is unset.
+
+Never list the folder. It grows with every feature that ships, and a listing costs more
+every month while saying no more. A grep costs the same on ten notes as on a thousand.
+
+These notes are how the coder learns that the feature it is about to build already half
 exists.>
 
 ## The note to leave

@@ -34,16 +34,15 @@ section, assume the tree is clean and everything you see is existing project cod
    whatever this codebase has decided — and they are the only place those rules are written
    down. The brief names them too; read them from the config so you cannot be working from
    a stale list. For you this is not optional: the verifier rejects on them.
-3. If `soul.directory` is set, look there before you write anything:
+3. If the brief has a **What earlier runs left about this area** section, open the files it
+   lists. Nothing else in that folder.
 
-   ```bash
-   ls soul/ 2>/dev/null && grep -ril "<a word from the issue>" soul/ 2>/dev/null
-   ```
+   Those are notes from earlier runs about what exists in this repository and why. You start
+   cold, and the code cannot tell you what was already tried, rejected, or abandoned
+   half-finished. If the section is absent, there was nothing relevant and you can move on.
 
-   Those are notes left by earlier runs about what exists in this repository and why. You
-   start cold and the code cannot tell you what was already tried, rejected, or left
-   half-done. Read any that look related. If the folder is empty or nothing matches, move on;
-   this costs one command.
+   Do not list the folder or read notes the brief did not name. It grows with every feature,
+   and reading all of it would cost more each month while telling you no more.
 
 4. Restate the acceptance criteria to yourself. If you cannot say concretely what "done"
    looks like, write `.loop/blocked.md` explaining exactly what is ambiguous and stop —

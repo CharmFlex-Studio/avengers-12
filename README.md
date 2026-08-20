@@ -233,14 +233,21 @@ So when a run builds something worth knowing about, it leaves a note at `soul/is
 ## Noticed, not fixed
 ```
 
-Later runs check that folder before they start. That's the whole point of it. Over time the
-loop builds up a picture of your project that no single run could have.
+Later runs search that folder before they start. That's the whole point of it. Over time the
+loop builds a picture of your project that no single run could have.
 
 The note is committed on the branch, so it turns up in the pull request and you see it with
 the change. Merge and it stays. Nothing is written for routine work, and a run can only ever
 write its own file.
 
-Turn it off with `soul: { directory: "" }`.
+The folder grows, but reading it doesn't get more expensive. A run greps for words from the
+issue and opens at most three matches, so a thousand notes cost the same as ten.
+
+```yaml
+soul:
+  directory: soul    # "" turns it off completely
+  readNotes: 3       # 0 = still write notes, never read them
+```
 
 ## Commands
 
@@ -255,7 +262,7 @@ where they are.
 
 ## Status
 
-Version 0.7.1. Still early.
+Version 0.7.2. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.
