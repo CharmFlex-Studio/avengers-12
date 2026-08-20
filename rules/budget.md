@@ -63,6 +63,25 @@ reason anywhere near it.
 The issue keeps its labels and stays in the queue. Raise `budget.maxRunsPerDay` in
 `avengers-12/config.yml` or wait — there is nothing to clean up, because nothing started.
 
+## Which runs count
+
+The daily cap counts a run once it has claimed an issue, whatever happens next.
+
+| Outcome | Counts? |
+|---|---|
+| `pr-opened` — worked | yes |
+| `escalated` — stopped and asked you something | yes |
+| `gate-failed` — touched a denied path | yes |
+| `died` — cancelled, or the runner vanished | yes |
+| `failed` — job failed some other way | yes |
+| `no-op` — preflight refused before claiming | no |
+
+Claiming is the line because that is when Claude gets invoked. A run that dies two
+minutes later has still spent the tokens.
+
+Refusals before claiming are free on purpose. A mistyped issue number, or an issue with no
+acceptance criteria, would otherwise eat your budget and lock you out of your own harness.
+
 ## Reading the spend
 
 `avengers-12/state/run-log.md` holds one JSON entry per run. The number worth watching is not total

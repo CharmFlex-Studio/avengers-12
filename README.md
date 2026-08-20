@@ -200,7 +200,7 @@ where they are.
 
 ## Status
 
-Version 0.4.6. Still early.
+Version 0.4.7. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.7 — 2026-08-20 *(not published)*
+
+- The daily cap now counts a `failed` outcome. It was the one outcome the counter
+  did not know about, so if that path ever fired, runs would stop counting and
+  the cap would quietly stop capping.
+- `rules/budget.md` lists which outcomes count and which do not. Short version:
+  once a run claims an issue it counts, however it ends. Refusals before that are
+  free.
+
 ## 0.4.6 — 2026-08-20 *(not published)*
 
 - Said plainly that nothing runs on a timer. `maxRunsPerDay` is a ceiling, not a

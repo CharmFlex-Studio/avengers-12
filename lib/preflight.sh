@@ -126,10 +126,15 @@ if [[ -f "$LOOP_RUN_LOG" ]]; then
   # count: triage runs (documented as unmetered, but they share this log), and
   # runs refused by this very script — otherwise a mistyped issue number burns
   # budget, and repeated refusals lock you out of your own harness.
+  #
+  # The list must hold every outcome append-run-log.sh can write for a claimed
+  # run, "failed" included. Nothing passes status= today so that one never
+  # appears, but a missing outcome here does not fail loudly: runs simply stop
+  # counting and the daily cap quietly stops capping.
   RUNS_TODAY="$(
     grep "\"run_id\": *\"$TODAY" "$LOOP_RUN_LOG" 2>/dev/null \
       | grep '"pattern": *"implement"' \
-      | grep -cE '"outcome": *"(pr-opened|escalated|gate-failed|died)"' \
+      | grep -cE '"outcome": *"(pr-opened|escalated|gate-failed|died|failed)"' \
       || true
   )"
   RUNS_TODAY="${RUNS_TODAY:-0}"
