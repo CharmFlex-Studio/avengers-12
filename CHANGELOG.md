@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4 — 2026-08-20
+
+- Put the flow diagram back. Cutting it in 0.4.3 was the wrong trim: it is the
+  fastest way to see what the tool does, and the paragraph that survived in its
+  place said the same thing in more words. The paragraph went instead.
+
 ## 0.4.3 — 2026-08-20
 
 - README cut from 313 lines to 183. Gone: the "what it won't do" section, the

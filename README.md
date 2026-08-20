@@ -2,11 +2,19 @@
 
 Write a GitHub issue. Get back a draft pull request.
 
-You describe what you want and add a label. A GitHub Action picks the issue up, writes the
-code, runs your tests, and opens a draft PR. If it can't work out what you meant, it stops
-and asks on the issue. You reply, and it carries on.
+A GitHub Action does the work. It never merges — you review every PR yourself.
 
-It never merges. You review every PR yourself.
+```
+   you                          avengers-12                       you
+    │                                │                             │
+  write an issue ──────────────▶  reads it                         │
+  label it loop:ready              writes the code                 │
+    │                              runs your tests                 │
+    │                              opens a draft PR ─────────────▶ review & merge
+    │                                │
+    │◀───── asks a question ─────  stuck?
+  reply on the issue ────────────▶ carries on
+```
 
 ## Before you start
 
@@ -174,7 +182,7 @@ run history.
 
 ## Status
 
-Version 0.4.3. Early. The logic is bash and python; npm is just how it reaches your repo.
+Version 0.4.4. Early. The logic is bash and python; npm is just how it reaches your repo.
 
 Used daily on one Gradle project, tested on every commit against a scratch Node project.
 Needs `bash`, `jq` and `python3` on the runner. Windows runners untested.
