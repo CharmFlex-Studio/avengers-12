@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 — 2026-08-20 *(not published)*
+
+- **The loop can run on a timer.** Set `schedule.everyHours` in the config and it
+  starts itself. 0 is off, and off is the default. GitHub checks every four
+  hours and skips if it is too soon, so anything under 4 behaves like 4.
+- **No limit on runs you start yourself.** `maxRunsPerDay` used to refuse a third
+  manual run, which was friction with nothing behind it: you were sitting there,
+  you knew you were spending a run. It now applies to scheduled runs only, where
+  it is the brake for something going wrong while you sleep.
+
 ## 0.4.7 — 2026-08-20 *(not published)*
 
 - The daily cap now counts a `failed` outcome. It was the one outcome the counter

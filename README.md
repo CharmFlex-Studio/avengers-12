@@ -110,7 +110,22 @@ Nothing goes red, so it's worth double checking.
 Commit what got created and merge it. Replying to the loop's questions won't work until
 this is on your default branch.
 
-### 7. Check your work
+### 7. Optional: let it run on its own
+
+Off by default. To turn it on, open `avengers-12/config.yml`:
+
+```yaml
+schedule:
+  everyHours: 8      # 0 means off
+```
+
+That's it. It'll start itself at most once every 8 hours and pick up whatever is labelled
+`loop:ready`. GitHub checks every four hours, so anything below 4 behaves the same as 4.
+
+`budget.maxRunsPerDay` only applies here, to runs nobody asked for. It's your brake if
+something goes wrong overnight.
+
+### 8. Check your work
 
 ```bash
 npx avengers-12 doctor
@@ -141,9 +156,7 @@ avengers-12/lib/check-issue.sh --issue 36
 
 Now label the issue `loop:ready`, then go to **Actions → Loop → Run workflow**.
 
-Nothing runs on its own. You press Run, or you reply to a question the loop asked. That is
-it. `maxRunsPerDay` in the config is a ceiling, not a timetable: it stops you going over,
-it does not start anything.
+Press Run as often as you like. There is no limit on runs you start yourself.
 
 Choose `triage-only` for your first go. It reads your issues and tells you what it makes of
 them without writing any code. Have a look at that, then run it again with `mode: full`.
@@ -200,7 +213,7 @@ where they are.
 
 ## Status
 
-Version 0.4.7. Still early.
+Version 0.5.0. Still early.
 
 It's used every day on one Gradle project, and tested against a Node project on every
 change. Your runner needs `bash`, `jq` and `python3`, which `ubuntu-latest` already has.

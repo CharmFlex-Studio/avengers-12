@@ -139,7 +139,16 @@ if [[ -f "$LOOP_RUN_LOG" ]]; then
   )"
   RUNS_TODAY="${RUNS_TODAY:-0}"
 fi
-if [[ "$RUNS_TODAY" -ge "$MAX_RUNS_PER_DAY" ]]; then
+# The cap is for runs nobody is watching. If you pressed Run, or replied on an
+# issue, you asked for this one and it is not the harness's business to refuse.
+# Capping those was friction with no safety behind it: you were already there,
+# you already knew you were spending a run.
+CAP_APPLIES=false
+[[ "${GITHUB_EVENT_NAME:-}" == "schedule" ]] && CAP_APPLIES=true
+
+if [[ "$CAP_APPLIES" == false ]]; then
+  log "budget: not a scheduled run, so the daily cap does not apply (${RUNS_TODAY} run(s) today)"
+elif [[ "$RUNS_TODAY" -ge "$MAX_RUNS_PER_DAY" ]]; then
   problem "daily implement budget exhausted ($RUNS_TODAY/$MAX_RUNS_PER_DAY)"
 
   # Say so on the issue, not only in the run log.
@@ -156,7 +165,8 @@ if [[ "$RUNS_TODAY" -ge "$MAX_RUNS_PER_DAY" ]]; then
     printf '%s implement run(s) for today (UTC). Nothing was started and nothing is wrong\n' "$MAX_RUNS_PER_DAY"
     printf 'with the issue — it stays `loop:ready` and will be picked up again.\n\n'
     printf '**Resets:** %sT00:00Z (the next UTC day)\n\n' "$(date -u -d 'tomorrow' +%Y-%m-%d 2>/dev/null || date -u -v+1d +%Y-%m-%d 2>/dev/null || echo 'the next UTC day')"
-    printf '**To run it sooner:** raise `budget.maxRunsPerDay` in `avengers-12/config.yml`, or set the `LOOP_MAX_RUNS_PER_DAY` repository variable to override it.\n'
+    printf '**This cap only applies to scheduled runs.** Press Run in the Actions tab and it\n'
+    printf 'will start straight away. Or raise `budget.maxRunsPerDay` in `avengers-12/config.yml`.\n'
   } > "$CAP_NOTE"
   loop_comment "$ISSUE" "$CAP_NOTE"
 

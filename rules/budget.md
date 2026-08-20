@@ -65,7 +65,10 @@ The issue keeps its labels and stays in the queue. Raise `budget.maxRunsPerDay` 
 
 ## Which runs count
 
-The daily cap counts a run once it has claimed an issue, whatever happens next.
+The daily cap applies to **scheduled runs only**. Press Run yourself, or reply on an issue,
+and nothing counts against you.
+
+For scheduled runs, a run counts once it has claimed an issue, whatever happens next.
 
 | Outcome | Counts? |
 |---|---|

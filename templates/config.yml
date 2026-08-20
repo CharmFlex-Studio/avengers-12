@@ -177,10 +177,22 @@ labels:
 branch:
   prefix: "loop/issue-"
 
+# --- running on a timer -----------------------------------------------------
+# 0 means off, and off is the default: the loop only starts when you press Run,
+# or when you reply to a question on an issue.
+#
+# Set it to a number of hours and it starts itself. 8 means "at most one run
+# every 8 hours". GitHub checks every 4 hours and skips if it is too soon, so
+# anything under 4 behaves the same as 4.
+#
+# Scheduled runs cost you money while you are not watching, which is why
+# budget.maxRunsPerDay below applies to them.
+schedule:
+  everyHours: 0
+
 # --- caps -------------------------------------------------------------------
-# These are ceilings, not a schedule. Nothing here makes a run happen. The loop
-# starts when you press Run in the Actions tab, or when you reply to a question
-# on a blocked issue. maxRunsPerDay just stops the third one today.
+# maxRunsPerDay applies to SCHEDULED runs only. Runs you start yourself, and
+# runs from replying on an issue, are never capped: you asked for those.
 budget:
   maxRunsPerDay: 2
   maxAttemptsPerRun: 3

@@ -57,6 +57,13 @@ on:
   issue_comment:
     types: [created]
 
+  # GitHub cannot read config.yml when deciding whether to fire a cron, so the
+  # timing lives here and the decision lives in schedule.everyHours. This fires
+  # every four hours; the `gate` job below stops it in seconds unless the config
+  # says otherwise. Default is off, and off costs about thirty seconds a day.
+  schedule:
+    - cron: '0 */4 * * *'
+
 concurrency:
   group: loop
   cancel-in-progress: false
@@ -88,8 +95,36 @@ env:
   # precedence question nobody should have to answer while debugging a run.
 
 jobs:
+  # ------------------------------------------------------------------ gate ---
+  # Answers one question: should a scheduled run carry on? Anything you started
+  # yourself skips straight past — you asked for it, so it is not gated.
+  gate:
+    name: Scheduled run check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: vars.LOOP_PAUSE_ALL != 'true'
+    outputs:
+      go: ${{ steps.decide.outputs.go }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - id: decide
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if avengers-12/lib/schedule-gate.sh; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # ---------------------------------------------------------------- triage ---
   triage:
+    needs: gate
     name: Rank the queue and pick
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -107,8 +142,10 @@ jobs:
     #     both would put two agents on one issue at the same time.
     if: >-
       vars.LOOP_PAUSE_ALL != 'true'
+      && needs.gate.outputs.go == 'true'
       && (
-        github.event_name == 'workflow_dispatch'
+        github.event_name == 'schedule'
+        || github.event_name == 'workflow_dispatch'
         || (
           github.event_name == 'issue_comment'
           && github.event.issue.pull_request == null
